@@ -1,5 +1,6 @@
 # Local Knowledge Engine (LKE)
 
+[![CI](https://github.com/Kanishk-C/local-knowledge-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Kanishk-C/local-knowledge-engine/actions/workflows/ci.yml)
 A Local-First AI Knowledge Engine for understanding, organizing, indexing, searching, linking, documenting, and maintaining personal knowledge stored locally.
 
 ## Project Vision
@@ -35,6 +36,15 @@ tests/             # Unit, Integration, E2E tests
 2. Install dependencies: `uv sync`
 3. Run verification: `make all` (Formats, lints, typechecks, tests)
 
+## Continuous Integration
+
+Every push and pull request is automatically validated by our GitHub Actions pipeline, which runs:
+- `uv run ruff format --check .` (Formatting)
+- `uv run ruff check .` (Linting)
+- `uv run mypy src tests` (Type checking)
+- `uv run pytest --cov=src --cov-report=xml --cov-fail-under=80` (Tests & Coverage)
+
+You can run these checks locally via the `make all` command. The pipeline acts as the quality gate for the repository and all checks must pass before a pull request can be merged.
 ## Quick Start
 *(Placeholder for CLI commands when implemented)*
 ```bash
