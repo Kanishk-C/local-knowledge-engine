@@ -1,0 +1,18 @@
+# Default behavior: Let Git handle line endings automatically
+* text=auto
+
+# Text files
+*.py text diff=python
+*.md text diff=markdown
+*.toml text
+*.yaml text
+*.yml text
+*.txt text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.duckdb binary
+*.lance binary

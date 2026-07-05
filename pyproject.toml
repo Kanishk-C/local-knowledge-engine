@@ -1,0 +1,52 @@
+[project]
+name = "lke"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Kanishk-C", email = "kanishkc01@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "duckdb",
+    "jinja2",
+    "lancedb",
+    "loguru",
+    "ollama",
+    "pydantic",
+    "rich",
+    "tomlkit",
+    "typer",
+    "watchdog",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.21,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.20",
+]
+
+[tool.ruff]
+line-length = 99
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM"]
+ignore = []
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "--cov=src --cov-report=term-missing"
+testpaths = ["tests"]
