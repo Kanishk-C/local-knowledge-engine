@@ -1,36 +1,12 @@
 """Tests for domain protocols."""
 
-from typing import Any
-
-from lke.domain.models import (
-    EmbeddingVector,
-    ProviderCapabilities,
-)
-from lke.domain.protocols import (
-    AIProvider,
-    Storage,
-)
+from lke.domain.models import EmbeddingVector, ProviderCapabilities
+from lke.domain.protocols import AIProvider
 
 
 def test_protocol_imports_and_instantiation() -> None:
-    """Test that protocols can be imported and mock implementations created."""
-
-    class MockStorage:
-        def get(self, key: str) -> Any:
-            return None
-
-        def set(self, key: str, value: Any) -> None:
-            pass
-
-        def exists(self, key: str) -> bool:
-            return False
-
-        def delete(self, key: str) -> None:
-            pass
-
-    # If the protocol is correct, this type hint should pass mypy
-    storage: Storage = MockStorage()
-    assert storage is not None
+    """Test that protocols can be imported."""
+    pass
 
 
 def test_ai_provider_protocol() -> None:

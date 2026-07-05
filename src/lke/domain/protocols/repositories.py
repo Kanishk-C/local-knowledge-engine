@@ -40,11 +40,3 @@ class MetadataRepository(Protocol):
     def get_documents_by_tag(self, tag: str) -> list[Document]:
         """Retrieve all documents containing a specific tag."""
         ...
-
-
-class GraphRepository(Protocol):
-    """Protocol for managing graph relationships between documents."""
-
-    def link_documents(self, source_id: str, target_id: str, link_type: str) -> None:
-        """Create a directed link between two documents."""
-        ...
