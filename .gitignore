@@ -41,7 +41,6 @@ venv/
 Thumbs.db
 
 # uv
-uv.lock
 
 # Tooling caches
 .mypy_cache/
