@@ -20,6 +20,7 @@ class EmbeddingsConfig(BaseModel):
     model_name: str = Field(default="nomic-embed-text")
     dimensions: int = Field(default=768, ge=1)
     chunk_size: int = Field(default=512, ge=100)
+    min_chunk_size: int = Field(default=100, ge=1)
     chunk_overlap: int = Field(default=50, ge=0)
 
 
