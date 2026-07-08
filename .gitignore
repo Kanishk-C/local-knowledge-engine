@@ -66,3 +66,6 @@ temp/
 # Local Configuration overrides
 lke.local.toml
 config.local.toml
+.agent/
+.ai/
+.github/
