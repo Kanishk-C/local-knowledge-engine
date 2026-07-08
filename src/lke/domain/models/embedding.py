@@ -1,6 +1,9 @@
 """Domain models for embeddings."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
+
+from lke.domain.models.document import DocumentChunk
 
 
 @dataclass(frozen=True)
@@ -15,3 +18,23 @@ class EmbeddingVector:
             raise ValueError("Embedding vector cannot be empty")
         # Bypass frozen constraint for init=False field
         object.__setattr__(self, "dimensions", len(self.vector))
+
+
+@dataclass(frozen=True)
+class EmbeddedChunk:
+    """Represents a chunk of text that has been embedded."""
+
+    chunk: DocumentChunk
+    embedding: EmbeddingVector
+    created_at: datetime = field(default_factory=lambda: datetime.now().astimezone())
+
+
+@dataclass(frozen=True)
+class HealthStatus:
+    """Health status of an AI provider."""
+
+    healthy: bool
+    latency_ms: float
+    provider: str
+    model: str
+    message: str | None = None

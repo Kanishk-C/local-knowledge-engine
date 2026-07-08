@@ -23,3 +23,9 @@ class ConfigurationError(LKEError):
     """Exception raised for configuration errors."""
 
     pass
+
+
+class EmbeddingGenerationError(InfrastructureError):
+    """Exception raised when an embedding provider fails to generate embeddings."""
+
+    pass

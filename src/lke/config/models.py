@@ -22,6 +22,7 @@ class EmbeddingsConfig(BaseModel):
     chunk_size: int = Field(default=512, ge=100)
     min_chunk_size: int = Field(default=100, ge=1)
     chunk_overlap: int = Field(default=50, ge=0)
+    batch_size: int = Field(default=32, ge=1)
 
 
 class AIProviderConfig(BaseModel):
