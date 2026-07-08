@@ -124,7 +124,7 @@ class LanceDBRepository:
 
         try:
             table = self._db.open_table(self._table_name)
-            
+
             results = table.search().select(["document_id"]).to_arrow()
             if len(results) == 0:
                 total_chunks = 0
@@ -133,7 +133,7 @@ class LanceDBRepository:
                 doc_ids = results.column("document_id").to_pylist()
                 total_chunks = len(doc_ids)
                 total_documents = len(set(doc_ids))
-            
+
             return RepositoryStats(
                 total_documents=total_documents,
                 total_chunks=total_chunks,
