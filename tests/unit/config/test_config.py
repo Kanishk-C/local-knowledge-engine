@@ -17,19 +17,27 @@ def test_default_config_loading() -> None:
     assert isinstance(config, ApplicationConfig)
     assert config.logging.level == "INFO"
     assert config.embeddings.model_name == "nomic-embed-text"
+    assert config.embeddings.embedding_dimensions == 768
+    assert config.embeddings.chunk_size == 512
+    assert config.embeddings.min_chunk_size == 100
+    assert config.embeddings.chunk_overlap == 50
+    assert config.embeddings.batch_size == 32
     assert config.paths.vector_db == Path(".lke/vectors.lance")
 
 
 def test_config_validation_success() -> None:
     """Test successful validation of valid overrides."""
-    valid_data = {"logging": {"level": "DEBUG"}, "embeddings": {"dimensions": 1024}}
+    valid_data = {
+        "logging": {"level": "DEBUG"},
+        "embeddings": {"embedding_dimensions": 1024},
+    }
     # Create with defaults and overrides
     base = get_default_config().model_dump()
     merged = merge_configs(base, valid_data)
     config = ApplicationConfig(**merged)
 
     assert config.logging.level == "DEBUG"
-    assert config.embeddings.dimensions == 1024
+    assert config.embeddings.embedding_dimensions == 1024
     assert config.search.max_results == 10  # Default preserved
 
 
@@ -55,13 +63,13 @@ def test_merge_configs() -> None:
 def test_env_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test extracting environment variable overrides."""
     monkeypatch.setenv("LKE_LOGGING__LEVEL", "DEBUG")
-    monkeypatch.setenv("LKE_EMBEDDINGS__DIMENSIONS", "1024")
+    monkeypatch.setenv("LKE_EMBEDDINGS__EMBEDDING_DIMENSIONS", "1024")
     monkeypatch.setenv("LKE_WATCHER__ENABLED", "true")
     monkeypatch.setenv("LKE_SEARCH__SIMILARITY_THRESHOLD", "0.8")
 
     overrides = get_env_overrides()
     assert overrides["logging"]["level"] == "DEBUG"
-    assert overrides["embeddings"]["dimensions"] == 1024
+    assert overrides["embeddings"]["embedding_dimensions"] == 1024
     assert overrides["watcher"]["enabled"] is True
     assert overrides["search"]["similarity_threshold"] == 0.8
 
@@ -104,16 +112,16 @@ level = "WARNING"
 max_results = 20
 """)
 
-    # 3. Env overrides max_results to 30 and dimensions to 2048
+    # 3. Env overrides max_results to 30 and embedding_dimensions to 2048
     monkeypatch.setenv("LKE_SEARCH__MAX_RESULTS", "30")
-    monkeypatch.setenv("LKE_EMBEDDINGS__DIMENSIONS", "2048")
+    monkeypatch.setenv("LKE_EMBEDDINGS__EMBEDDING_DIMENSIONS", "2048")
 
     config = load_configuration(config_file)
 
     # Assert precedence
     assert config.logging.level == "WARNING"  # From TOML
     assert config.search.max_results == 30  # From Env (overrides TOML)
-    assert config.embeddings.dimensions == 2048  # From Env
+    assert config.embeddings.embedding_dimensions == 2048  # From Env
     assert config.ai_provider.timeout_seconds == 30  # From Default
 
 

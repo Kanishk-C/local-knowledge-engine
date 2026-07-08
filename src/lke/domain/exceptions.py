@@ -29,3 +29,9 @@ class EmbeddingGenerationError(InfrastructureError):
     """Exception raised when an embedding provider fails to generate embeddings."""
 
     pass
+
+
+class InvalidEmbeddingDimensionError(DomainError):
+    """Exception raised when an embedding vector has incorrect dimensions."""
+
+    pass

@@ -31,10 +31,21 @@ class EmbeddedChunk:
 
 @dataclass(frozen=True)
 class HealthStatus:
-    """Health status of an AI provider."""
+    """Health status of a provider or repository."""
 
     healthy: bool
     latency_ms: float
     provider: str
     model: str
     message: str | None = None
+
+
+@dataclass(frozen=True)
+class RepositoryStats:
+    """Statistics for the vector repository."""
+
+    total_documents: int
+    total_chunks: int
+    total_vectors: int
+    dimensions: int
+    table_name: str
