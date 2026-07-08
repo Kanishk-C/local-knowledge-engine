@@ -14,6 +14,7 @@ dependencies = [
     "loguru",
     "ollama",
     "pydantic",
+    "pyyaml>=6.0.3",
     "rich",
     "tomlkit",
     "typer",
@@ -33,6 +34,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.20",
+    "types-pyyaml>=6.0.12.20260518",
 ]
 
 [tool.ruff]
