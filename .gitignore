@@ -12,6 +12,7 @@ dist/
 *.egg-info/
 .installed.cfg
 *.egg
+__pypackages__/
 
 # Unit test / coverage reports
 htmlcov/
@@ -39,9 +40,12 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+.AppleDouble
+*~
 
-# uv
-
+# uv / Python versions
+.python-version
+uv.lock
 # Tooling caches
 .mypy_cache/
 .ruff_cache/
@@ -69,3 +73,4 @@ config.local.toml
 .agent/
 .ai/
 .github/
+AGENTS.md

@@ -1,6 +1,5 @@
 # Local Knowledge Engine (LKE)
 
-[![CI](https://github.com/Kanishk-C/local-knowledge-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Kanishk-C/local-knowledge-engine/actions/workflows/ci.yml)
 A Local-First AI Knowledge Engine for understanding, organizing, indexing, searching, linking, documenting, and maintaining personal knowledge stored locally.
 
 ## Project Vision
@@ -64,8 +63,8 @@ lke watch
 - **Testing**: Pytest
 
 ## Roadmap
-- Phase 0: Foundation (Current)
-- Phase 1: Parse + Embed + Search
+- Phase 0: Foundation (Complete)
+- Phase 1: Parse + Embed + Search (Current)
 - Phase 2: Watch Mode + Resilience
 - Phase 3: Release v0.1.0
 
