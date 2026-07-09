@@ -2,9 +2,19 @@
 
 import logging
 import time
+from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
 
+from lke.domain.events.base import DomainEvent
+from lke.domain.events.indexing import (
+    ChunksGenerated,
+    DocumentParsed,
+    EmbeddingsCreated,
+    IndexCompleted,
+    IndexStarted,
+    VectorsStored,
+)
 from lke.domain.models.indexing import BatchIndexingResult, IndexingResult
 from lke.domain.models.source import DataSource, SourceType
 from lke.domain.protocols.parser import Parser
@@ -38,10 +48,16 @@ class IndexingPipeline:
         self._embedder = embedding_service
         self._vector_repo = vector_repo
 
-    def index_document(self, file_path: Path) -> IndexingResult:
+    def index_document(
+        self, file_path: Path, event_callback: Callable[[DomainEvent], None] | None = None
+    ) -> IndexingResult:
         """Process a single document through the complete indexing pipeline."""
         start_time = time.perf_counter()
         document_id = None
+
+        def emit(event: DomainEvent) -> None:
+            if event_callback:
+                event_callback(event)
 
         try:
             logger.info(f"Indexing document: {file_path}")
@@ -49,9 +65,11 @@ class IndexingPipeline:
             document_id = str(file_path.absolute())
             source = DataSource(uri=document_id, source_type=SourceType.MARKDOWN)
             parsed_content = self._parser.parse(source)
+            emit(DocumentParsed.create(file_path=str(file_path)))
 
             chunks = self._chunking.chunk(parsed_content)
             chunks_created = len(chunks)
+            emit(ChunksGenerated.create(file_path=str(file_path), chunk_count=chunks_created))
 
             if self._vector_repo.exists(document_id):
                 self._vector_repo.delete_document(document_id)
@@ -70,8 +88,12 @@ class IndexingPipeline:
 
             embedded_chunks = self._embedder.embed_chunks(chunks)
             embedded_count = len(embedded_chunks)
+            emit(
+                EmbeddingsCreated.create(file_path=str(file_path), embedding_count=embedded_count)
+            )
 
             self._vector_repo.upsert(embedded_chunks)
+            emit(VectorsStored.create(file_path=str(file_path), vector_count=embedded_count))
 
             duration = timedelta(seconds=time.perf_counter() - start_time)
             logger.info(
@@ -101,7 +123,9 @@ class IndexingPipeline:
                 error_message=str(e),
             )
 
-    def index_vault(self, vault_path: Path) -> BatchIndexingResult:
+    def index_vault(
+        self, vault_path: Path, event_callback: Callable[[DomainEvent], None] | None = None
+    ) -> BatchIndexingResult:
         """Process an entire directory of documents."""
         result = BatchIndexingResult()
 
@@ -112,8 +136,13 @@ class IndexingPipeline:
         markdown_files = list(vault_path.rglob("*.md"))
         logger.info(f"Found {len(markdown_files)} files to index in {vault_path}")
 
+        if event_callback:
+            event_callback(
+                IndexStarted.create(target_path=str(vault_path), total_files=len(markdown_files))
+            )
+
         for file_path in markdown_files:
-            doc_result = self.index_document(file_path)
+            doc_result = self.index_document(file_path, event_callback=event_callback)
             result.add_result(doc_result)
 
         logger.info(
@@ -122,5 +151,14 @@ class IndexingPipeline:
             f"Failed: {result.failed_documents}, "
             f"Total Chunks: {result.total_chunks}"
         )
+
+        if event_callback:
+            event_callback(
+                IndexCompleted.create(
+                    target_path=str(vault_path),
+                    successful=result.successful_documents,
+                    failed=result.failed_documents,
+                )
+            )
 
         return result
