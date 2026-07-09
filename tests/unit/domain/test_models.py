@@ -69,13 +69,25 @@ def test_search_query_validation() -> None:
 
 def test_search_result_validation() -> None:
     """Test SearchResult validation."""
-    chunk = DocumentChunk("c1", "d1", "text", 0, ContentType.PROSE)
+    # Removed unused chunk variable
 
-    with pytest.raises(ValueError, match="Relevance score must be between 0.0 and 1.0"):
-        SearchResult(document_id="d1", chunk=chunk, relevance_score=1.5)
+    with pytest.raises(ValueError, match="Score must be between 0.0 and 1.0"):
+        SearchResult(
+            chunk_id="c1",
+            document_id="d1",
+            content="text",
+            score=1.5,
+            metadata={},
+        )
 
-    with pytest.raises(ValueError, match="Relevance score must be between 0.0 and 1.0"):
-        SearchResult(document_id="d1", chunk=chunk, relevance_score=-0.1)
+    with pytest.raises(ValueError, match="Score must be between 0.0 and 1.0"):
+        SearchResult(
+            chunk_id="c1",
+            document_id="d1",
+            content="text",
+            score=-0.1,
+            metadata={},
+        )
 
 
 def test_parsed_content_defaults() -> None:

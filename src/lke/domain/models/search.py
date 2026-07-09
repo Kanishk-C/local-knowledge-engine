@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from .document import DocumentChunk
+from .embedding import EmbeddedChunk
 
 
 @dataclass(frozen=True)
@@ -25,25 +25,27 @@ class SearchQuery:
 class VectorSearchHit:
     """Represents a raw hit from the vector database."""
 
-    chunk: DocumentChunk
-    distance: float
+    chunk: EmbeddedChunk
+    similarity: float
 
     def __post_init__(self) -> None:
-        if self.distance < 0:
-            raise ValueError("Distance cannot be negative")
+        if self.similarity < 0:
+            raise ValueError("Similarity cannot be negative")
 
 
 @dataclass(frozen=True)
 class SearchResult:
     """Represents a scored and formatted result for the end user."""
 
+    chunk_id: str
     document_id: str
-    chunk: DocumentChunk
-    relevance_score: float
+    content: str
+    score: float
+    metadata: dict[str, Any]
 
     def __post_init__(self) -> None:
-        if not (0.0 <= self.relevance_score <= 1.0):
-            raise ValueError("Relevance score must be between 0.0 and 1.0")
+        if not (0.0 <= self.score <= 1.0):
+            raise ValueError("Score must be between 0.0 and 1.0")
 
 
 @dataclass(frozen=True)

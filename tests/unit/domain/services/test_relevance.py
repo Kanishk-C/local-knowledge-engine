@@ -3,70 +3,65 @@
 import pytest
 
 from lke.domain.models.document import ContentType, DocumentChunk
+from lke.domain.models.embedding import EmbeddedChunk, EmbeddingVector
 from lke.domain.models.search import VectorSearchHit
 from lke.domain.services.relevance import RelevanceScorer
 
 
 @pytest.fixture
-def dummy_chunk() -> DocumentChunk:
-    """Provide a dummy DocumentChunk for testing."""
-    return DocumentChunk(
+def dummy_chunk() -> EmbeddedChunk:
+    """Provide a dummy EmbeddedChunk for testing."""
+    chunk = DocumentChunk(
         chunk_id="doc1_0",
         document_id="doc1",
         content="Hello world",
         chunk_index=0,
         content_type=ContentType.PROSE,
     )
+    return EmbeddedChunk(chunk=chunk, embedding=EmbeddingVector(vector=[0.1, 0.2, 0.3]))
 
 
 def test_relevance_scorer_initialization() -> None:
     """Test RelevanceScorer initialization."""
-    scorer = RelevanceScorer(metric="L2")
-    assert scorer.metric == "l2"
+    scorer = RelevanceScorer(min_similarity=0.5)
+    assert scorer.min_similarity == 0.5
 
 
-def test_score_cosine_metric(dummy_chunk: DocumentChunk) -> None:
-    """Test scoring with cosine distance."""
-    scorer = RelevanceScorer(metric="cosine")
-
-    hits = [
-        VectorSearchHit(chunk=dummy_chunk, distance=0.0),  # Exact match
-        VectorSearchHit(chunk=dummy_chunk, distance=1.0),  # Orthogonal
-        VectorSearchHit(chunk=dummy_chunk, distance=2.0),  # Opposite
-        VectorSearchHit(chunk=dummy_chunk, distance=3.0),  # Should be clamped to 0.0 score
-    ]
-
-    results = scorer.score(hits)
-
-    # Results should be sorted by relevance descending
-    assert len(results) == 4
-    assert results[0].relevance_score == 1.0  # From distance 0.0
-    assert results[1].relevance_score == 0.5  # From distance 1.0
-    assert results[2].relevance_score == 0.0  # From distance 2.0
-    assert results[3].relevance_score == 0.0  # From distance 3.0 clamped
-
-
-def test_score_l2_metric(dummy_chunk: DocumentChunk) -> None:
-    """Test scoring with L2 (or generic) distance."""
-    scorer = RelevanceScorer(metric="l2")
+def test_score_normalization_and_sorting(dummy_chunk: EmbeddedChunk) -> None:
+    """Test scoring sorts by similarity and clamps to bounds."""
+    scorer = RelevanceScorer()
 
     hits = [
-        VectorSearchHit(chunk=dummy_chunk, distance=0.0),
-        VectorSearchHit(chunk=dummy_chunk, distance=1.0),
-        VectorSearchHit(chunk=dummy_chunk, distance=4.0),
+        VectorSearchHit(chunk=dummy_chunk, similarity=1.5),  # Clamped to 1.0
+        VectorSearchHit(chunk=dummy_chunk, similarity=0.8),
+        VectorSearchHit(chunk=dummy_chunk, similarity=0.2),
     ]
 
     results = scorer.score(hits)
 
     # Results should be sorted by relevance descending
     assert len(results) == 3
+    assert results[0].score == 1.0  # From 1.5 clamped
+    assert results[1].score == 0.8
+    assert results[2].score == 0.2
 
-    # distance 0.0 -> score 1.0
-    assert results[0].relevance_score == 1.0
-    # distance 1.0 -> score 0.5
-    assert results[1].relevance_score == 0.5
-    # distance 4.0 -> score 0.2
-    assert results[2].relevance_score == 0.2
+
+def test_score_min_similarity_filtering(dummy_chunk: EmbeddedChunk) -> None:
+    """Test scoring filters out results below the minimum similarity."""
+    scorer = RelevanceScorer(min_similarity=0.75)
+
+    hits = [
+        VectorSearchHit(chunk=dummy_chunk, similarity=0.9),
+        VectorSearchHit(chunk=dummy_chunk, similarity=0.75),
+        VectorSearchHit(chunk=dummy_chunk, similarity=0.74),
+        VectorSearchHit(chunk=dummy_chunk, similarity=0.5),
+    ]
+
+    results = scorer.score(hits)
+
+    assert len(results) == 2
+    assert results[0].score == 0.9
+    assert results[1].score == 0.75
 
 
 def test_score_empty_hits() -> None:
@@ -74,12 +69,3 @@ def test_score_empty_hits() -> None:
     scorer = RelevanceScorer()
     results = scorer.score([])
     assert len(results) == 0
-
-
-def test_normalize_distance_negative() -> None:
-    """Test distance normalization with negative values."""
-    scorer = RelevanceScorer()
-    # While VectorSearchHit forbids negative distances,
-    # the internal _normalize_distance method clamps them to 0.0
-    # We can test it directly or by mocking if we didn't want to test private methods.
-    assert scorer._normalize_distance(-1.0) == 1.0

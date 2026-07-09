@@ -140,3 +140,37 @@ def test_performance_1000_chunks(repo: LanceDBRepository) -> None:
     assert len(doc0_chunks) == 100
     assert insert_time < 2.0
     assert retrieve_time < 0.5
+
+
+def test_search(repo: LanceDBRepository) -> None:
+    chunks = [
+        create_embedded_chunk("doc1", 0, [0.1, 0.1, 0.1]),
+        create_embedded_chunk("doc1", 1, [0.9, 0.9, 0.9]),
+        create_embedded_chunk("doc2", 0, [0.5, 0.5, 0.5]),
+    ]
+    repo.upsert(chunks)
+
+    # Search for something close to doc1:1
+    query_vector = EmbeddingVector(vector=[0.8, 0.8, 0.8])
+    hits = repo.search(query_vector, top_k=2)
+
+    assert len(hits) == 2
+    assert hits[0].chunk.chunk.chunk_id == "doc1:1"
+    assert hits[1].chunk.chunk.chunk_id == "doc2:0"
+    assert hits[0].similarity > hits[1].similarity
+
+
+def test_search_invalid_dimension(repo: LanceDBRepository) -> None:
+    query_vector = EmbeddingVector(vector=[0.1, 0.1])
+    with pytest.raises(InvalidEmbeddingDimensionError):
+        repo.search(query_vector, top_k=5)
+
+
+def test_search_uninitialized(tmp_path: Path) -> None:
+    paths = PathsConfig(vector_db=tmp_path / "uninit_search.lance")
+    embeds = EmbeddingsConfig(embedding_dimensions=3)
+    repo = LanceDBRepository(paths_config=paths, embed_config=embeds)
+
+    query_vector = EmbeddingVector(vector=[0.1, 0.1, 0.1])
+    hits = repo.search(query_vector, top_k=5)
+    assert len(hits) == 0

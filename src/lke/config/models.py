@@ -43,8 +43,9 @@ class ParsingConfig(BaseModel):
 class SearchConfig(BaseModel):
     """Configuration for vector search."""
 
+    top_k: int = Field(default=5, ge=1)
+    min_similarity: float = Field(default=0.75, ge=0.0, le=1.0)
     max_results: int = Field(default=10, ge=1)
-    similarity_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
 
 
 class WatcherConfig(BaseModel):

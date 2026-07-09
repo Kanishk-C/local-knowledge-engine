@@ -2,11 +2,33 @@
 
 from typing import Protocol
 
-from lke.domain.models.embedding import EmbeddedChunk, HealthStatus, RepositoryStats
+from lke.domain.models.embedding import (
+    EmbeddedChunk,
+    EmbeddingVector,
+    HealthStatus,
+    RepositoryStats,
+)
+from lke.domain.models.search import VectorSearchHit
 
 
 class VectorRepository(Protocol):
     """Protocol for storing document embeddings in a vector database."""
+
+    def search(
+        self,
+        embedding: EmbeddingVector,
+        top_k: int,
+    ) -> list[VectorSearchHit]:
+        """Perform semantic search to find similar chunks.
+
+        Args:
+            embedding: The embedding vector to search for.
+            top_k: The maximum number of results to return.
+
+        Returns:
+            A list of VectorSearchHit objects representing the closest matches.
+        """
+        ...
 
     def upsert(self, chunks: list[EmbeddedChunk]) -> None:
         """Upsert a list of embedded chunks into the repository.

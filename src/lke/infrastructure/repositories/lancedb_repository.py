@@ -7,7 +7,13 @@ import pyarrow as pa
 
 from lke.config.models import EmbeddingsConfig, PathsConfig
 from lke.domain.exceptions import InfrastructureError, InvalidEmbeddingDimensionError
-from lke.domain.models.embedding import EmbeddedChunk, HealthStatus, RepositoryStats
+from lke.domain.models.embedding import (
+    EmbeddedChunk,
+    EmbeddingVector,
+    HealthStatus,
+    RepositoryStats,
+)
+from lke.domain.models.search import VectorSearchHit
 from lke.infrastructure.repositories.mappers.lance_mapper import LanceRowMapper
 
 
@@ -51,6 +57,37 @@ class LanceDBRepository:
                 self._db.create_table(self._table_name, schema=self._schema)
         except Exception as e:
             raise InfrastructureError(f"Failed to initialize LanceDB table: {e}") from e
+
+    def search(
+        self,
+        embedding: EmbeddingVector,
+        top_k: int,
+    ) -> list[VectorSearchHit]:
+        """Perform semantic search to find similar chunks."""
+        if self._table_name not in self._db.table_names():
+            return []
+
+        if len(embedding.vector) != self._dimensions:
+            raise InvalidEmbeddingDimensionError(
+                f"Expected vector of dimension {self._dimensions}, got {len(embedding.vector)}"
+            )
+
+        try:
+            table = self._db.open_table(self._table_name)
+            # LanceDB defaults to L2 distance. For now, we return 1.0 / (1.0 + distance)
+            # Alternatively, if distance is cosine, 1.0 - distance is better.
+            # We'll use 1.0 / (1.0 + distance) as a safe fallback for similarity.
+            results = table.search(embedding.vector).limit(top_k).to_arrow().to_pylist()
+            hits = []
+            for row in results:
+                chunk = LanceRowMapper.from_row(row)
+                distance = row.get("_distance", 0.0)
+                # Ensure similarity is >= 0
+                similarity = max(0.0, 1.0 / (1.0 + distance))
+                hits.append(VectorSearchHit(chunk=chunk, similarity=similarity))
+            return hits
+        except Exception as e:
+            raise InfrastructureError(f"Failed to search in LanceDB: {e}") from e
 
     def upsert(self, chunks: list[EmbeddedChunk]) -> None:
         """Upsert a list of embedded chunks into the repository."""
