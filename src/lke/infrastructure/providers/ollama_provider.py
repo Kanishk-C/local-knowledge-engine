@@ -24,44 +24,60 @@ class OllamaProvider:
         self._client = ollama.Client(host=ai_config.base_url)
         self._model_name = embed_config.model_name
         self._max_retries = ai_config.max_retries
+        self._batch_size = embed_config.batch_size
 
     def generate_embeddings(self, texts: list[str]) -> list[EmbeddingVector]:
-        """Generate embeddings using the configured Ollama model."""
+        """Generate embeddings for a list of texts using Ollama.
+
+        Args:
+            texts: A list of text strings to embed.
+
+        Returns:
+            A list of EmbeddingVector objects.
+
+        Raises:
+            EmbeddingGenerationError: If the Ollama API call fails or returns invalid data.
+        """
         if not texts:
             return []
 
-        def _do_request() -> Any:
-            return self._client.embed(model=self._model_name, input=texts)
+        all_vectors: list[EmbeddingVector] = []
+        batch_size = self._batch_size
 
-        try:
-            response = RetryPolicy.execute(
-                func=_do_request,
-                max_retries=self._max_retries,
-                initial_backoff_ms=100,
-                max_backoff_ms=2000,
-                exceptions=(Exception,),
-            )
-        except Exception as e:
-            raise EmbeddingGenerationError(
-                f"Failed to generate embeddings from Ollama: {e}"
-            ) from e
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i : i + batch_size]
 
-        embeddings_data = response.get("embeddings")
-        if not embeddings_data or not isinstance(embeddings_data, list):
-            raise EmbeddingGenerationError("Invalid response format from Ollama.")
+            def _do_request(batch: list[str] = batch_texts) -> Any:
+                return self._client.embed(model=self._model_name, input=batch)
 
-        if len(embeddings_data) != len(texts):
-            raise EmbeddingGenerationError(
-                f"Expected {len(texts)} embeddings, got {len(embeddings_data)}"
-            )
+            try:
+                response = RetryPolicy.execute(
+                    func=_do_request,
+                    max_retries=self._max_retries,
+                    initial_backoff_ms=100,
+                    max_backoff_ms=2000,
+                    exceptions=(Exception,),
+                )
+            except Exception as e:
+                raise EmbeddingGenerationError(
+                    f"Failed to generate embeddings from Ollama: {e}"
+                ) from e
 
-        vectors = []
-        for vec in embeddings_data:
-            if not isinstance(vec, list) or not all(isinstance(v, (int, float)) for v in vec):
-                raise EmbeddingGenerationError("Malformed embedding vector in response.")
-            vectors.append(EmbeddingVector(vector=vec))
+            embeddings_data = response.get("embeddings")
+            if not embeddings_data or not isinstance(embeddings_data, list):
+                raise EmbeddingGenerationError("Invalid response format from Ollama.")
 
-        return vectors
+            if len(embeddings_data) != len(batch_texts):
+                raise EmbeddingGenerationError(
+                    f"Expected {len(batch_texts)} embeddings, got {len(embeddings_data)}"
+                )
+
+            for vec in embeddings_data:
+                if not isinstance(vec, list) or not all(isinstance(v, (int, float)) for v in vec):
+                    raise EmbeddingGenerationError("Malformed embedding vector in response.")
+                all_vectors.append(EmbeddingVector(vector=vec))
+
+        return all_vectors
 
     def health_check(self) -> HealthStatus:
         """Check the health of the Ollama provider."""
@@ -71,11 +87,11 @@ class OllamaProvider:
             models_response = self._client.list()
             latency = (time.perf_counter() - start_time) * 1000
 
-            models_data = models_response.get("models", [])
-            model_names = [m.get("model", "") for m in models_data if isinstance(m, dict)]
+            models_data = getattr(models_response, "models", [])
+            model_names = [getattr(m, "model", "") or getattr(m, "name", "") for m in models_data]
 
             has_model = any(
-                m == self._model_name or m.startswith(f"{self._model_name}:") for m in model_names
+                m == self._model_name or str(m).startswith(f"{self._model_name}:") for m in model_names
             )
 
             if not has_model:
