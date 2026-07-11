@@ -74,10 +74,18 @@ def test_ollama_provider_timeout(mock_embed: MagicMock, provider: OllamaProvider
         provider.generate_embeddings(["text1"])
 
 
+class MockModel:
+    def __init__(self, name: str):
+        self.model = name
+
+class MockListResponse:
+    def __init__(self, models: list[MockModel]):
+        self.models = models
+
 @patch("ollama.Client.list")
 def test_health_check_healthy(mock_list: MagicMock, provider: OllamaProvider) -> None:
     """Test health check when healthy and model exists."""
-    mock_list.return_value = {"models": [{"model": "nomic-embed-text:latest"}]}
+    mock_list.return_value = MockListResponse([MockModel("nomic-embed-text:latest")])
 
     status = provider.health_check()
     assert status.healthy is True
@@ -89,7 +97,7 @@ def test_health_check_healthy(mock_list: MagicMock, provider: OllamaProvider) ->
 @patch("ollama.Client.list")
 def test_health_check_model_missing(mock_list: MagicMock, provider: OllamaProvider) -> None:
     """Test health check when model is missing."""
-    mock_list.return_value = {"models": [{"model": "llama3:latest"}]}
+    mock_list.return_value = MockListResponse([MockModel("llama3:latest")])
 
     status = provider.health_check()
     assert status.healthy is False
