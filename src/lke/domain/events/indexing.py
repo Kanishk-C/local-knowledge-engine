@@ -51,3 +51,11 @@ class IndexCompleted(DomainEvent):
     target_path: str
     successful: int
     failed: int
+
+
+@dataclass(frozen=True)
+class IndexSkipped(DomainEvent):
+    """Emitted when a file is skipped during indexing because it has not changed."""
+
+    file_path: str
+    reason: str

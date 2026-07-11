@@ -210,7 +210,7 @@ class LanceDBRepository:
                 model="vector_repository",
                 message=message,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             latency = (time.perf_counter() - start_time) * 1000
             return HealthStatus(
                 healthy=False,

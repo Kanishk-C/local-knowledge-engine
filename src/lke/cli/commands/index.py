@@ -18,6 +18,7 @@ from lke.cli.formatting import create_summary_table, print_error
 from lke.domain.events.base import DomainEvent
 from lke.domain.events.indexing import (
     DocumentParsed,
+    IndexSkipped,
     IndexStarted,
 )
 
@@ -57,6 +58,12 @@ def index_command(
                 progress.advance(task_id)
                 if verbose:
                     console.print(f"[secondary]Parsed {event.file_path}[/secondary]")
+            elif isinstance(event, IndexSkipped):
+                progress.advance(task_id)
+                if verbose:
+                    console.print(
+                        f"[secondary]Skipped {event.file_path} ({event.reason})[/secondary]"
+                    )
 
         try:
             if target_path.is_file():

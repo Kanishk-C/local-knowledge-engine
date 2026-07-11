@@ -45,12 +45,13 @@ Thumbs.db
 
 # uv / Python versions
 .python-version
-uv.lock
+
 # Tooling caches
 .mypy_cache/
 .ruff_cache/
 
 # Local Databases (LanceDB, DuckDB)
+.lke/
 *.lance/
 *.duckdb
 *.duckdb.wal

@@ -8,8 +8,6 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "duckdb",
-    "jinja2",
     "lancedb",
     "loguru",
     "ollama",
@@ -55,3 +53,6 @@ warn_unused_configs = true
 minversion = "7.0"
 addopts = "--cov=src --cov-report=term-missing"
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:table_names\\(\\) is deprecated:DeprecationWarning",
+]

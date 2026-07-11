@@ -74,7 +74,9 @@ def initialize_container() -> None:
     container.register(RelevanceScorer, relevance_scorer)
 
     # Application Services
-    indexing_pipeline = IndexingPipeline(parser, chunking_service, embedding_service, vector_repo)
+    indexing_pipeline = IndexingPipeline(
+        parser, chunking_service, embedding_service, vector_repo, config.paths
+    )
     container.register(IndexingPipeline, indexing_pipeline)
 
     search_service = SearchService(provider, vector_repo, relevance_scorer, config.search)
