@@ -27,9 +27,16 @@ def test_init_command_success(mock_resolve: MagicMock) -> None:
     )
 
     mock_repo = MagicMock(spec=VectorRepository)
-    mock_repo.health.return_value = HealthStatus(
-        healthy=True, latency_ms=10, provider="lancedb", model="vector_repository", message="OK"
-    )
+    class MockRepoHealth:
+        def __init__(self):
+            self.calls = 0
+        def __call__(self):
+            self.calls += 1
+            if self.calls == 1:
+                return HealthStatus(healthy=False, latency_ms=10, provider="lancedb", model="vector", message="Table not found")
+            return HealthStatus(healthy=True, latency_ms=10, provider="lancedb", model="vector", message="OK")
+    
+    mock_repo.health.side_effect = MockRepoHealth()
 
     def resolve_side_effect(interface: type) -> MagicMock:
         if interface == ApplicationConfig:
@@ -47,3 +54,4 @@ def test_init_command_success(mock_resolve: MagicMock) -> None:
     assert "Configuration" in result.stdout
     assert "Ollama" in result.stdout
     assert "LanceDB" in result.stdout
+    mock_repo.initialize.assert_called_once()

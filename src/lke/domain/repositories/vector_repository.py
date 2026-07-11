@@ -83,3 +83,7 @@ class VectorRepository(Protocol):
             HealthStatus indicating if the repository is accessible and healthy.
         """
         ...
+
+    def initialize(self) -> None:
+        """Initialize the repository, creating necessary tables/collections."""
+        ...

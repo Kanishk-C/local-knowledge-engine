@@ -29,7 +29,7 @@ def init_command() -> None:
         provider_health = provider.health_check()
         if provider_health.healthy:
             print_success("Ollama")
-            print_success(f"Embedding Model ({config.embeddings.embedding_model})")
+            print_success(f"Embedding Model ({config.embeddings.model_name})")
         else:
             print_error("Ollama")
             console.print(f"[secondary]  Reason: {provider_health.message}[/secondary]")
@@ -40,6 +40,13 @@ def init_command() -> None:
         status.update("[info]Checking Vector Repository (LanceDB)...[/info]")
         repo = container.resolve(VectorRepository)
         repo_health = repo.health()
+        if not repo_health.healthy:
+            try:
+                repo.initialize()
+                repo_health = repo.health()
+            except Exception:
+                pass
+
         if repo_health.healthy:
             print_success("LanceDB")
             print_success("Repository Schema")
