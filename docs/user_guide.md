@@ -78,7 +78,7 @@ LKE can be configured using environment variables formatted as `LKE_SECTION__KEY
 | **Ollama URL** | `http://localhost:11434` | `LKE_AI_PROVIDER__BASE_URL` | Local Ollama endpoint. |
 | **Top K Results** | `5` | `LKE_SEARCH__TOP_K` | Number of default search results. |
 | **Min Similarity** | `0.75` | `LKE_SEARCH__MIN_SIMILARITY` | Minimum semantic match score (0.0 to 1.0). |
-| **Watcher Debounce** | `1.0` | `LKE_WATCHER__DEBOUNCE_SECONDS` | Seconds to wait before processing file changes. |
+| **Watcher Debounce** | `2.0` | `LKE_WATCHER__DEBOUNCE_SECONDS` | Seconds to wait before processing file changes. |
 | **Auto-File Enabled**| `False` | `LKE_ENRICHMENT__AUTO_FILE_ENABLED` | Whether to automatically move notes into folders based on AI tags. |
 
 > [!WARNING]
@@ -143,8 +143,8 @@ To keep indexing extremely fast, LKE uses an incremental approach based on **con
 
 ### Watch Mode & Auto-Filing
 Watch mode utilizes `watchdog` to continuously listen for filesystem events. 
-- It uses a debounce timer (default 1 second) to bundle rapid saves into a single indexing/enrichment run.
-- If **auto-filing** is enabled, the AI will tag your note, and the system will automatically create a folder matching the primary tag and move the file there. The watcher explicitly suppresses re-indexing this self-caused move to prevent infinite loops.
+- It uses a debounce timer (default 2.0 seconds) to bundle rapid saves into a single indexing/enrichment run.
+- If **auto-filing** is enabled, the AI will classify your note into an appropriate folder using a dedicated folder vocabulary (which is independent of its tags), and the system will automatically create that folder and move the file there. The watcher explicitly suppresses re-indexing this self-caused move to prevent infinite loops.
 - Watch mode gracefully handles Ollama downtime. If the provider is unreachable, it logs a warning, retries the operation, and if it ultimately fails, it drops that single event rather than crashing the entire watcher process. 
 
 ---
