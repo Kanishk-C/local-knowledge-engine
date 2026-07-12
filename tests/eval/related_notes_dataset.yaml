@@ -1,0 +1,52 @@
+pairs:
+  # Hard negative pairs (homonyms, shared phrasing)
+  - note_a: python_snake.md
+    note_b: python_language.md
+    is_related: false
+    reason: "Homonym: python (reptile vs programming)"
+  
+  - note_a: java_coffee.md
+    note_b: java_lang.md
+    is_related: false
+    reason: "Homonym: java (coffee vs programming)"
+    
+  - note_a: apple_company.md
+    note_b: apple_fruit.md
+    is_related: false
+    reason: "Homonym: apple (tech vs fruit)"
+    
+  - note_a: bank_river.md
+    note_b: bank_finance.md
+    is_related: false
+    reason: "Homonym: bank (geography vs finance)"
+    
+  - note_a: note1.md
+    note_b: note2.md
+    is_related: false
+    reason: "Shared phrasing overlap but distinct topics (ML vs fitness)"
+
+  # True positive pairs (actually related)
+  - note_a: gradient_descent_short.md
+    note_b: gradient_descent_long.md
+    is_related: true
+    reason: "Same specific topic, different lengths"
+    
+  - note_a: baking_bread.md
+    note_b: quick_bread.md
+    is_related: true
+    reason: "Highly related concepts (types of bread baking)"
+    
+  - note_a: docker_containers.md
+    note_b: devops_cicd.md
+    is_related: true
+    reason: "Highly related (Docker is a DevOps tool)"
+    
+  - note_a: zettelkasten.md
+    note_b: obsidian_app.md
+    is_related: true
+    reason: "Zettelkasten is heavily used with Obsidian"
+    
+  - note_a: black_holes.md
+    note_b: special_relativity.md
+    is_related: true
+    reason: "Physics concepts"
