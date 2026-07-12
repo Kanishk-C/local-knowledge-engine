@@ -71,7 +71,7 @@ class PathsConfig(BaseModel):
 
     vector_db: Path = Field(default=Path(".lke/vectors.lance"))
     metadata_file: Path = Field(default=Path(".lke/metadata.json"))
-    metadata_db: Path = Field(default=Path(".lke/metadata.duckdb"))
+
     cache_dir: Path = Field(default=Path(".lke/cache"))
 
 

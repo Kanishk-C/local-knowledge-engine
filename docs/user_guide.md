@@ -98,7 +98,7 @@ LKE can be configured using environment variables formatted as `LKE_SECTION__KEY
 | **Auto-File Enabled**| `False` | `LKE_ENRICHMENT__AUTO_FILE_ENABLED` | Whether to automatically move notes into folders based on AI tags. |
 | **Vector DB Path** | `.lke/vectors.lance` | `LKE_PATHS__VECTOR_DB` | Path to vector storage. |
 | **Metadata File** | `.lke/metadata.json` | `LKE_PATHS__METADATA_FILE` | Path to state tracking file. |
-| **Metadata DB** | `.lke/metadata.duckdb` | `LKE_PATHS__METADATA_DB` | Path to DuckDB (deprecated). |
+
 | **Cache Dir** | `.lke/cache` | `LKE_PATHS__CACHE_DIR` | Path to internal cache. |
 
 > [!WARNING]
