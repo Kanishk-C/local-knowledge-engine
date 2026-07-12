@@ -116,18 +116,19 @@ def test_index_document_existing(
 ) -> None:
     doc_path = tmp_path / "test.md"
     doc_path.write_text("Hello world")
-
+    doc_id = str(doc_path.absolute())
+    parser_mock.parse.return_value = ParsedContent(document_id=doc_id, raw_text="Hello world")
     vector_repo_mock.exists.return_value = True
     chunking_mock.chunk.return_value = []
 
     pipeline.index_document(doc_path)
 
-    doc_id = str(doc_path.absolute())
     vector_repo_mock.delete_document.assert_called_once_with(doc_id)
 
 
 def test_index_document_no_chunks(
     pipeline: IndexingPipeline,
+    parser_mock: Mock,
     chunking_mock: Mock,
     embedding_mock: Mock,
     vector_repo_mock: Mock,
@@ -135,6 +136,9 @@ def test_index_document_no_chunks(
 ) -> None:
     doc_path = tmp_path / "empty.md"
     doc_path.write_text("")
+    
+    doc_id = str(doc_path.absolute())
+    parser_mock.parse.return_value = ParsedContent(document_id=doc_id, raw_text="")
 
     chunking_mock.chunk.return_value = []
 

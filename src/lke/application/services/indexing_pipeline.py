@@ -86,7 +86,7 @@ class IndexingPipeline:
         chunking_service: ChunkingService,
         embedding_service: EmbeddingService,
         vector_repo: VectorRepository,
-        paths_config: PathsConfig,
+        metadata_store: _MetadataStore,
     ) -> None:
         """Initialize the indexing pipeline.
 
@@ -95,21 +95,13 @@ class IndexingPipeline:
             chunking_service: Service to split text into semantic chunks.
             embedding_service: Service to generate vector embeddings.
             vector_repo: Repository to store the embedded chunks.
-            paths_config: Configuration for file paths.
+            metadata_store: Store for tracking indexed files state.
         """
         self._parser = parser
         self._chunking = chunking_service
         self._embedder = embedding_service
         self._vector_repo = vector_repo
-        self._metadata_store = _MetadataStore(paths_config.metadata_file)
-
-    def _compute_hash(self, file_path: Path) -> str:
-        """Compute the SHA256 hash of a file's content."""
-        sha256 = hashlib.sha256()
-        with open(file_path, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256.update(byte_block)
-        return sha256.hexdigest()
+        self._metadata_store = metadata_store
 
     def index_document(
         self, file_path: Path, event_callback: Callable[[DomainEvent], None] | None = None
@@ -127,8 +119,14 @@ class IndexingPipeline:
 
             document_id = str(file_path.absolute())
 
-            # 1. Compute hash and check if skipped
-            content_hash = self._compute_hash(file_path)
+            # 1. Parse document to get clean body
+            source = DataSource(uri=document_id, source_type=SourceType.MARKDOWN)
+            parsed_content = self._parser.parse(source)
+            
+            # Compute hash of the clean body (without frontmatter or AI block)
+            content_hash = hashlib.sha256(parsed_content.raw_text.encode("utf-8")).hexdigest()
+
+            # 2. Check if skipped
             if self._metadata_store.get_hash(document_id) == content_hash:
                 logger.info(f"Skipping {file_path} (unchanged)")
                 emit(IndexSkipped.create(file_path=str(file_path), reason="content unchanged"))
@@ -146,8 +144,6 @@ class IndexingPipeline:
             if self._vector_repo.exists(document_id):
                 self._vector_repo.delete_document(document_id)
 
-            source = DataSource(uri=document_id, source_type=SourceType.MARKDOWN)
-            parsed_content = self._parser.parse(source)
             emit(DocumentParsed.create(file_path=str(file_path)))
 
             chunks = self._chunking.chunk(parsed_content)

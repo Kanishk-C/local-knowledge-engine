@@ -75,3 +75,7 @@ config.local.toml
 .ai/
 .github/
 AGENTS.md
+\n# Scratch files
+sample_vault/
+force_index.py
+/test_*.py
