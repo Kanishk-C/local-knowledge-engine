@@ -71,15 +71,35 @@ LKE can be configured using environment variables formatted as `LKE_SECTION__KEY
 
 | Setting | Default Value | Environment Variable | Description |
 | :--- | :--- | :--- | :--- |
+| **Log Level** | `INFO` | `LKE_LOGGING__LEVEL` | One of DEBUG, INFO, WARNING, ERROR, CRITICAL. |
+| **Log File Path** | `None` | `LKE_LOGGING__FILE_PATH` | Path to log file (None=stdout). |
+| **Log Retention** | `7 days` | `LKE_LOGGING__RETENTION` | Log file retention policy. |
 | **Embeddings Model** | `nomic-embed-text` | `LKE_EMBEDDINGS__MODEL_NAME` | The model used for embeddings. |
 | **Embedding Dims** | `768` | `LKE_EMBEDDINGS__EMBEDDING_DIMENSIONS` | Must strictly match the model's native dimensions. |
-| **Generation Model** | `llama3.2` | `LKE_ENRICHMENT__GENERATION_MODEL` | The model used for AI enrichment. |
+| **Chunk Size** | `512` | `LKE_EMBEDDINGS__CHUNK_SIZE` | Max characters per document chunk. |
+| **Min Chunk Size** | `100` | `LKE_EMBEDDINGS__MIN_CHUNK_SIZE` | Minimum characters per document chunk. |
+| **Chunk Overlap** | `50` | `LKE_EMBEDDINGS__CHUNK_OVERLAP` | Character overlap between chunks. |
 | **Batch Size** | `32` | `LKE_EMBEDDINGS__BATCH_SIZE` | How many chunks to embed concurrently. |
 | **Ollama URL** | `http://localhost:11434` | `LKE_AI_PROVIDER__BASE_URL` | Local Ollama endpoint. |
+| **Ollama Timeout** | `30` | `LKE_AI_PROVIDER__TIMEOUT_SECONDS` | Timeout for AI provider API calls. |
+| **Ollama Retries** | `3` | `LKE_AI_PROVIDER__MAX_RETRIES` | Max retries for AI provider API calls. |
+| **Supported Exts** | `[".md", ".txt"]` | `LKE_PARSING__SUPPORTED_EXTENSIONS` | File extensions to index. |
+| **Exclude Patterns** | `[".git", "node_modules"]` | `LKE_PARSING__EXCLUDE_PATTERNS` | Ignore patterns. |
 | **Top K Results** | `5` | `LKE_SEARCH__TOP_K` | Number of default search results. |
 | **Min Similarity** | `0.75` | `LKE_SEARCH__MIN_SIMILARITY` | Minimum semantic match score (0.0 to 1.0). |
+| **Max Results** | `10` | `LKE_SEARCH__MAX_RESULTS` | Max results to ever return. |
+| **Watcher Enabled**| `False` | `LKE_WATCHER__ENABLED` | Enable watcher daemon by default. |
 | **Watcher Debounce** | `2.0` | `LKE_WATCHER__DEBOUNCE_SECONDS` | Seconds to wait before processing file changes. |
+| **Generation Model** | `llama3.2` | `LKE_ENRICHMENT__GENERATION_MODEL` | The model used for AI enrichment. |
+| **Max New Tags** | `1` | `LKE_ENRICHMENT__MAX_NEW_TAGS_PER_NOTE` | Max new tags to generate per note. |
+| **Max New Folders** | `1` | `LKE_ENRICHMENT__MAX_NEW_FOLDERS_PER_NOTE` | Max new folders to generate per note. |
+| **Rel Notes Thresh** | `0.55` | `LKE_ENRICHMENT__RELATED_NOTES_THRESHOLD` | Threshold for embedding similarity. |
+| **Rel Notes Max** | `5` | `LKE_ENRICHMENT__RELATED_NOTES_MAX` | Max related notes to append. |
 | **Auto-File Enabled**| `False` | `LKE_ENRICHMENT__AUTO_FILE_ENABLED` | Whether to automatically move notes into folders based on AI tags. |
+| **Vector DB Path** | `.lke/vectors.lance` | `LKE_PATHS__VECTOR_DB` | Path to vector storage. |
+| **Metadata File** | `.lke/metadata.json` | `LKE_PATHS__METADATA_FILE` | Path to state tracking file. |
+| **Metadata DB** | `.lke/metadata.duckdb` | `LKE_PATHS__METADATA_DB` | Path to DuckDB (deprecated). |
+| **Cache Dir** | `.lke/cache` | `LKE_PATHS__CACHE_DIR` | Path to internal cache. |
 
 > [!WARNING]
 > **Embedding Dimensions Mismatch**  
@@ -88,6 +108,11 @@ LKE can be configured using environment variables formatted as `LKE_SECTION__KEY
 ---
 
 ## 4. Command Reference
+
+### Global Options
+These options can be passed to any command (e.g. `lke --verbose index`).
+- `--verbose, -v`: Enable debug logging.
+- `--json-logs`: Enable structured JSON logging.
 
 ### `lke init`
 Validates the environment, verifies Ollama connectivity, checks model availability, and creates the required database tables.
@@ -120,7 +145,8 @@ Analyzes documents using the generation LLM to extract tags, write summaries, an
 uv run lke enrich [PATH]
 ```
 _Options:_
-- `--auto-file / --no-auto-file`: Overrides the `LKE_ENRICHMENT__AUTO_FILE_ENABLED` setting.
+- `--verbose, -v`: Show detailed progress for each file.
+- `--dry-run`: Simulate enrichment without modifying files.
 
 ### `lke watch`
 Runs as a foreground process, actively monitoring the specified vault directory for file creations, modifications, and deletions. Automatically indexes and enriches files as they are saved.
