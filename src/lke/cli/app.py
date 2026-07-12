@@ -3,7 +3,7 @@
 import typer
 from loguru import logger
 
-from lke.cli.commands import index, init, search
+from lke.cli.commands import index, init, search, enrich, watch
 from lke.infrastructure.logging.setup import setup_logging
 
 app = typer.Typer(
@@ -15,6 +15,8 @@ app = typer.Typer(
 app.add_typer(init.app)
 app.add_typer(index.app)
 app.add_typer(search.app)
+app.add_typer(enrich.app)
+app.add_typer(watch.app)
 
 
 @app.callback()

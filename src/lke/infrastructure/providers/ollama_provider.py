@@ -5,26 +5,37 @@ from typing import Any
 
 import ollama
 
-from lke.config.models import AIProviderConfig, EmbeddingsConfig
+from lke.config.models import AIProviderConfig, EmbeddingsConfig, EnrichmentConfig
 from lke.domain.exceptions import EmbeddingGenerationError
-from lke.domain.models.embedding import EmbeddingVector, HealthStatus
+from lke.domain.models.embedding import (
+    EmbeddingVector,
+    HealthStatus,
+)
+from lke.domain.models.search import ProviderCapabilities
 from lke.infrastructure.resilience.retry import RetryPolicy
 
 
 class OllamaProvider:
-    """Ollama provider for generating embeddings."""
+    """Ollama provider for generating embeddings and structured data."""
 
-    def __init__(self, ai_config: AIProviderConfig, embed_config: EmbeddingsConfig) -> None:
+    def __init__(
+        self, 
+        ai_config: AIProviderConfig, 
+        embed_config: EmbeddingsConfig,
+        enrich_config: EnrichmentConfig | None = None
+    ) -> None:
         """Initialize the Ollama provider.
 
         Args:
             ai_config: Configuration for the AI provider (host, timeout).
             embed_config: Configuration for embeddings (model name).
+            enrich_config: Configuration for enrichment (generation model name).
         """
         self._client = ollama.Client(host=ai_config.base_url)
         self._model_name = embed_config.model_name
         self._max_retries = ai_config.max_retries
         self._batch_size = embed_config.batch_size
+        self._generation_model = enrich_config.generation_model if enrich_config else "llama3.2"
 
     def generate_embeddings(self, texts: list[str]) -> list[EmbeddingVector]:
         """Generate embeddings for a list of texts using Ollama.
@@ -78,6 +89,45 @@ class OllamaProvider:
                 all_vectors.append(EmbeddingVector(vector=vec))
 
         return all_vectors
+
+    def generate(self, prompt: str, schema: type) -> dict[str, Any]:
+        """Generate structured output based on a prompt and Pydantic schema."""
+        import json
+        
+        def _do_request() -> Any:
+            return self._client.generate(
+                model=self._generation_model,
+                prompt=prompt,
+                format=schema.model_json_schema(),
+            )
+            
+        try:
+            response = RetryPolicy.execute(
+                func=_do_request,
+                max_retries=self._max_retries,
+                initial_backoff_ms=100,
+                max_backoff_ms=2000,
+                exceptions=(Exception,),
+            )
+            raw_text = response.response
+            return json.loads(raw_text)
+        except Exception as e:
+            raise Exception(f"Failed to generate structured output: {e}") from e
+
+    def get_capabilities(self) -> ProviderCapabilities:
+        raise NotImplementedError()
+        
+    def generate_embedding(self, text: str) -> EmbeddingVector:
+        raise NotImplementedError()
+        
+    def summarize(self, text: str) -> str:
+        raise NotImplementedError()
+        
+    def extract_keywords(self, text: str) -> list[str]:
+        raise NotImplementedError()
+        
+    def generate_metadata(self, text: str) -> dict[str, str]:
+        raise NotImplementedError()
 
     def health_check(self) -> HealthStatus:
         """Check the health of the Ollama provider."""

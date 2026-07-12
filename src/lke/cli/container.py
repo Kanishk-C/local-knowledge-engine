@@ -16,6 +16,13 @@ from lke.infrastructure.parsing.markdown_parser import MarkdownParser
 from lke.infrastructure.providers.ollama_provider import OllamaProvider
 from lke.infrastructure.repositories.lancedb_repository import LanceDBRepository
 
+from lke.application.services.enrichment_pipeline import EnrichmentPipeline
+from lke.infrastructure.parsing.markdown_writer import MarkdownFrontmatterWriter
+from lke.domain.protocols.ai_provider import AIProvider
+from lke.domain.protocols.vocabulary import TagVocabulary, FolderVocabulary
+from lke.infrastructure.vocabulary.json_vocabulary import JsonVocabulary
+from lke.application.services.indexing_pipeline import _MetadataStore
+
 T = TypeVar("T")
 
 
@@ -50,14 +57,27 @@ def initialize_container() -> None:
     container.register(ApplicationConfig, config)
 
     # Infrastructure
-    provider = OllamaProvider(config.ai_provider, config.embeddings)
+    provider = OllamaProvider(config.ai_provider, config.embeddings, config.enrichment)
     container.register(EmbeddingProvider, provider)
+    container.register(AIProvider, provider)
 
     vector_repo = LanceDBRepository(config.paths, config.embeddings)
     container.register(VectorRepository, vector_repo)
 
     parser = MarkdownParser()
     container.register(Parser, parser)
+
+    workspace_path = config.paths.metadata_file.parent.parent
+    tags_vocab = JsonVocabulary(workspace_path, "tags.json")
+    folders_vocab = JsonVocabulary(workspace_path, "folders.json")
+    container.register(TagVocabulary, tags_vocab)
+    container.register(FolderVocabulary, folders_vocab)
+
+    writer = MarkdownFrontmatterWriter()
+    container.register(MarkdownFrontmatterWriter, writer)
+
+    metadata_store = _MetadataStore(config.paths.metadata_file)
+    container.register(_MetadataStore, metadata_store)
 
     # Domain Services
     chunking_service = ChunkingService(
@@ -75,9 +95,21 @@ def initialize_container() -> None:
 
     # Application Services
     indexing_pipeline = IndexingPipeline(
-        parser, chunking_service, embedding_service, vector_repo, config.paths
+        parser, chunking_service, embedding_service, vector_repo, metadata_store
     )
     container.register(IndexingPipeline, indexing_pipeline)
+
+    enrichment_pipeline = EnrichmentPipeline(
+        parser=parser,
+        ai_provider=provider,
+        vector_repo=vector_repo,
+        tag_vocab=tags_vocab,
+        folder_vocab=folders_vocab,
+        writer=writer,
+        metadata_store=metadata_store,
+        config=config.enrichment,
+    )
+    container.register(EnrichmentPipeline, enrichment_pipeline)
 
     search_service = SearchService(provider, vector_repo, relevance_scorer, config.search)
     container.register(SearchService, search_service)
