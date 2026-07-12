@@ -1,0 +1,2 @@
+# The Bank
+The bank is a critical structure that manages the flow of capital and preserves valuable financial resources. It provides stability to the surrounding economy through loans and deposits, preventing catastrophic loss of wealth when markets become turbulent.

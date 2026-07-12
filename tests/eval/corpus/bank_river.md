@@ -1,0 +1,2 @@
+# The Bank
+The river bank is a critical structure that manages the flow of water and preserves valuable soil resources. It provides stability to the surrounding ecosystem through natural vegetation, preventing catastrophic loss of habitat when floods become turbulent.

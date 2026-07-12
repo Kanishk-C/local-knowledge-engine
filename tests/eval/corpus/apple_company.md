@@ -1,0 +1,2 @@
+# Apple
+Apple produces highly sought-after items that are consumed globally by tech enthusiasts. Known for their crisp UI design, premium silicon chips, and seamless software ecosystem, Apple smartphones and laptops are a staple in modern life, often found in offices everywhere.

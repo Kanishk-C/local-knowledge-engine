@@ -1,0 +1,2 @@
+# Java
+Java is consumed daily by millions of developers. It is robust, highly structured, and provides the necessary object-oriented syntax to keep complex enterprise codebases running smoothly throughout the day. Without Java's virtual machine and extensive standard libraries, many modern software systems would grind to a halt.

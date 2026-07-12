@@ -1,0 +1,2 @@
+# Index Funds vs Mutual Funds
+Index funds passively track a market index like the S&P 500, offering low expense ratios. Actively managed mutual funds try to beat the market but usually have higher fees.

@@ -1,0 +1,2 @@
+# Git Rebase vs Merge
+Rebasing rewrites commit history by moving a branch to a new base commit. Merging preserves history by creating a new merge commit. Both integrate changes, but rebase results in a linear history.

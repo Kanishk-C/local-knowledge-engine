@@ -1,0 +1,2 @@
+# Sourdough Bread Baking
+Sourdough relies on a natural starter instead of commercial yeast. The fermentation process requires maintaining the starter, autolyse, stretch and folds, and a long cold proof.

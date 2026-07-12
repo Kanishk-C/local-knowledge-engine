@@ -1,0 +1,2 @@
+# Docker Containers
+Docker is a platform for developing, shipping, and running applications in containers. Containers package the application code and dependencies together, ensuring consistency across environments.

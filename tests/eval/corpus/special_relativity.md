@@ -1,0 +1,2 @@
+# Special Relativity
+Albert Einstein's theory of special relativity proposes that the laws of physics are the same for all non-accelerating observers, and that the speed of light in a vacuum is independent of the motion of all observers.

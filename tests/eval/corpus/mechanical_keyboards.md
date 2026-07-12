@@ -1,0 +1,2 @@
+# Mechanical Keyboards
+Mechanical keyboards use individual, physical switches under each key. They offer better tactile feedback and durability compared to membrane keyboards. Switch types include linear, tactile, and clicky.

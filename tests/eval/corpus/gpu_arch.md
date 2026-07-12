@@ -1,0 +1,2 @@
+# GPU Architecture
+Graphics Processing Units (GPUs) are designed for parallel processing, originally for rendering graphics. Their architecture makes them highly effective for machine learning and deep learning tasks.

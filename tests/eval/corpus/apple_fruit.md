@@ -1,0 +1,2 @@
+# Apple
+The apple produces highly sought-after items that are consumed globally by healthy eaters. Known for their crisp texture, premium sweet flavor, and seamless integration into baking recipes, apples are a staple in modern diets, often found in fruit bowls and kitchens everywhere.

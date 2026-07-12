@@ -1,0 +1,111 @@
+evaluations:
+- query: Tell me about python the reptile.
+  expected_relevant_documents:
+  - python_snake.md
+  expected_answer_contains:
+  - scales
+  - cold-blooded
+  - prey
+  expected_answer_excludes:
+  - syntax
+  - code
+  - software
+- query: What is Python used for?
+  expected_relevant_documents:
+  - python_language.md
+  expected_answer_contains:
+  - syntax
+  - libraries
+  - execute complex code
+  expected_answer_excludes:
+  - scales
+  - prey
+  - jungle
+- query: How is java related to coffee?
+  expected_relevant_documents:
+  - java_coffee.md
+  expected_answer_contains:
+  - caffeinated
+  - roasted beans
+  - flavor profile
+  expected_answer_excludes:
+  - developers
+  - virtual machine
+  - codebases
+- query: What is Java used for in software?
+  expected_relevant_documents:
+  - java_lang.md
+  expected_answer_contains:
+  - object-oriented syntax
+  - virtual machine
+  - standard libraries
+  expected_answer_excludes:
+  - caffeinated
+  - roasted beans
+- query: Information about Apple products
+  expected_relevant_documents:
+  - apple_company.md
+  expected_answer_contains:
+  - UI design
+  - silicon chips
+  - smartphones
+  expected_answer_excludes:
+  - texture
+  - sweet flavor
+  - baking recipes
+- query: How do river banks erode?
+  expected_relevant_documents:
+  - bank_river.md
+  expected_answer_contains:
+  - flow of water
+  - natural vegetation
+  - floods
+  expected_answer_excludes:
+  - capital
+  - loans
+  - deposits
+  - markets
+- query: What algorithm optimizes neural networks?
+  expected_relevant_documents:
+  - gradient_descent_short.md
+  - gradient_descent_long.md
+  expected_answer_contains:
+  - Gradient descent
+  - loss function
+  expected_answer_excludes: []
+- query: What are index funds?
+  expected_relevant_documents:
+  - index_funds.md
+  expected_answer_contains:
+  - S&P 500
+  - low expense
+  expected_answer_excludes: []
+- query: Explain the Zettelkasten method
+  expected_relevant_documents:
+  - zettelkasten.md
+  expected_answer_contains:
+  - atomic notes
+  - linking
+  expected_answer_excludes: []
+- query: How does Docker work?
+  expected_relevant_documents:
+  - docker_containers.md
+  expected_answer_contains:
+  - containers
+  - dependencies
+  expected_answer_excludes: []
+- query: Who landed on the moon first?
+  expected_relevant_documents:
+  - apollo_11.md
+  expected_answer_contains:
+  - Neil Armstrong
+  - Buzz Aldrin
+  expected_answer_excludes: []
+- query: Can you find my short note about machine learning algorithms?
+  expected_relevant_documents:
+  - note1.md
+  expected_answer_contains:
+  - machine learning
+  expected_answer_excludes:
+  - sourdough
+  - bread

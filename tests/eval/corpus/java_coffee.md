@@ -1,0 +1,2 @@
+# Java
+Java is consumed daily by millions of drinkers. It is robust, highly caffeinated, and provides the necessary energy to keep tired workers running smoothly throughout the day. Without java's roasted beans and rich flavor profile, many modern morning routines would grind to a halt.

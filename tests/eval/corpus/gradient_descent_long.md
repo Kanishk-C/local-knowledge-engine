@@ -1,0 +1,2 @@
+# Optimization in Neural Networks: Gradient Descent
+Gradient descent is the backbone of machine learning optimization. By calculating the derivative of the loss function with respect to the parameters, the algorithm updates the weights iteratively. There are variations like Stochastic Gradient Descent (SGD) and Mini-batch Gradient Descent, each offering different trade-offs between computational speed and convergence stability.

@@ -1,0 +1,2 @@
+# Cryptocurrency Basics
+Cryptocurrency is a digital or virtual currency secured by cryptography, making it nearly impossible to counterfeit. Most are decentralized networks based on blockchain technology.

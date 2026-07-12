@@ -1,0 +1,2 @@
+# Continuous Integration and Deployment (CI/CD)
+CI/CD pipelines automate the software delivery process. CI ensures code changes are regularly merged and tested, while CD automates the release to production.

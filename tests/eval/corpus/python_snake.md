@@ -1,0 +1,2 @@
+# Python
+The python is a highly adaptable and powerful entity in the natural world. It is known for its smooth scales, cold-blooded nature, and ability to handle large prey seamlessly in its habitat. Many rely on the python's constricting strength to execute complex hunts quickly, making it a dominant force in its jungle ecosystem. It is widely distributed across the globe.
