@@ -83,12 +83,13 @@ This document is the canonical engineering work queue for implementing v0.1.0 of
     *   Extended the eval harness to also test note-to-note relatedness (the EnrichmentPipeline logic).
     *   Ran the `tests/eval/corpus` against a swept threshold (0.40 to 0.80).
     *   **Finding:** Single-threshold cosine similarity on chunk-level embeddings cannot separate structural/lexical overlap from true semantic relation for this corpus, at any threshold value. The current default (0.55) yields a 100% false-positive rate on adversarial pairs. 
-*   **T3.4.3: Scope related-notes semantic accuracy fix** (PENDING)
+*   **T3.4.3: Scope related-notes semantic accuracy fix** (COMPLETE)
     *   *Task:* Evaluate options to fix the 100% false-positive rate on homonyms/adversarial pairs before proceeding with implementation.
-    *   *Option A:* Document-level pooled embeddings (average chunks).
-    *   *Option B:* Secondary signal combining cosine similarity with shared controlled vocabulary tags.
-    *   *Option C:* LLM-based relatedness judgement on candidate pairs above a low similarity floor.
-    *   *Recommendation:* **Option B** is recommended first. It leverages our existing robust `TagVocabulary` and requires no extra LLM calls (unlike C) nor architectural embedding changes (unlike A), directly grounding mathematical similarity in semantic tagging.
+    *   *Finding:* We fixed the corrupted vocabulary (purging garbage tags like "fix"). The generated tags are now much cleaner (e.g., "python", "java", "machine-learning"). However, the LLM still hallucinates existing tags onto unrelated documents (e.g., applying "python" and "java" to both apple_company.md and apple_fruit.md). Because the LLM assigns overlapping tags to completely unrelated documents, the **Option B (Tag-overlap gating)** still FAILS to separate adversarial pairs.
+    *   *Option A:* Document-level pooled embeddings (average chunks). Tradeoff: No extra inference cost, scales trivially (O(1) after embedding), but risks washing out small but highly relevant shared concepts in longer documents.
+    *   *Option B:* LLM-based reranking. Use chunk-level cosine similarity to fetch top N candidates, then run a fast LLM to judge semantic relatedness for each pair. Tradeoff: Highly precise, but introduces O(N) LLM calls *per document*, scaling poorly with vault size and candidate count. This adds massive latency and cost on top of the base tagging/summary generation.
+    *   *Option C:* Cross-encoder reranking. Same flow as Option B but uses a local cross-encoder model. Tradeoff: No network latency and likely faster than an LLM, but requires downloading and managing a secondary local model for inference.
+    *   *Recommendation:* **Option B (LLM reranking)** is the most robust approach for precision, but its true cost is O(candidates) LLM calls, which could severely bottleneck ingestion. **Option C (Cross-encoder)** may actually be the superior production choice to balance precision with acceptable local performance. We should present this scoping to the user to choose the implementation path.
 
 ---
 
