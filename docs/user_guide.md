@@ -6,11 +6,16 @@ The Local Knowledge Engine (LKE) is a CLI-based semantic search engine designed 
 
 LKE is built for maximum privacy and local-first workflows—there are no cloud dependencies, API keys, or external data processing involved.
 
+**What LKE does:**
+- Indexes Markdown and text files into a LanceDB vector database.
+- Provides high-speed semantic search.
+- Watches your file system for live changes and auto-indexes them.
+- Enriches notes with AI-generated summaries and tags.
+- Can automatically reorganize and physically move your notes into topical folders based on AI classification.
+
 **What LKE does NOT do (yet):**
-- Does not generate answers or perform Retrieval-Augmented Generation (RAG).
-- Does not watch your file system for live changes.
+- Does not generate conversational answers or perform Retrieval-Augmented Generation (RAG).
 - Does not serve an HTTP API.
-- It is strictly a CLI utility for indexing and semantic search.
 
 ---
 
@@ -18,15 +23,16 @@ LKE is built for maximum privacy and local-first workflows—there are no cloud 
 
 ### Prerequisites
 
-LKE requires a local Python environment and a running instance of [Ollama](https://ollama.com/) to generate embeddings.
+LKE requires a local Python environment and a running instance of [Ollama](https://ollama.com/) to generate embeddings and run AI enrichment.
 
-1. **Python:** Version 3.10+ (managed via `uv` or standard `pip`).
+1. **Python:** Version 3.14+ (or compatible versions per your environment setup).
 2. **Ollama:** Must be running locally on `http://localhost:11434`.
-3. **Embedding Model:** LKE defaults to `nomic-embed-text`. You must pull this model before initializing LKE.
+3. **Models:** LKE defaults to `nomic-embed-text` for embeddings and `llama3.2` for text generation/enrichment. You must pull these models before initializing LKE.
 
-Run the following command to pull the required model:
+Run the following command to pull the required models:
 ```bash
 ollama pull nomic-embed-text
+ollama pull llama3.2
 ```
 
 ### Installation
@@ -49,43 +55,31 @@ Run the initialization command:
 ```bash
 uv run lke init
 ```
-**Output:**
-```text
-✓ Configuration
-✓ Ollama
-✓ Embedding Model (nomic-embed-text)
-✓ LanceDB
-✓ Repository Schema
-✓ Storage (.lke/vectors.lance)
-
-╭───────────────────────────────╮
-│ LKE is initialized and ready! │
-╰───────────────────────────────╯
-```
-
 **What happens on initialization:**
-LKE verifies that Ollama is running and the specified embedding model is available. It then provisions a hidden `.lke/` directory in your current working directory.
+LKE verifies that Ollama is running and the specified models are available. It then provisions a hidden `.lke/` directory in your current working directory.
 - `.lke/vectors.lance/` - The LanceDB database that stores your vector embeddings.
 - `.lke/metadata.json` - Tracks the SHA256 hashes of your indexed files to enable high-speed incremental indexing.
+- `.lke/cache/` - Stores cached vocabulary and internal states.
 
 ---
 
 ## 3. Configuration Reference
 
-LKE can be configured using a `lke.toml` file (if provided) or by setting environment variables formatted as `LKE_SECTION__KEY`.
+LKE can be configured using environment variables formatted as `LKE_SECTION__KEY`.
 
 ### Defaults and Overrides
 
 | Setting | Default Value | Environment Variable | Description |
 | :--- | :--- | :--- | :--- |
-| **Embeddings Model** | `nomic-embed-text` | `LKE_EMBEDDINGS__MODEL_NAME` | The model used via Ollama. |
+| **Embeddings Model** | `nomic-embed-text` | `LKE_EMBEDDINGS__MODEL_NAME` | The model used for embeddings. |
 | **Embedding Dims** | `768` | `LKE_EMBEDDINGS__EMBEDDING_DIMENSIONS` | Must strictly match the model's native dimensions. |
-| **Chunk Size** | `512` | `LKE_EMBEDDINGS__CHUNK_SIZE` | Max characters per document chunk. |
-| **Chunk Overlap** | `50` | `LKE_EMBEDDINGS__CHUNK_OVERLAP` | Character overlap between chunks. |
+| **Generation Model** | `llama3.2` | `LKE_ENRICHMENT__GENERATION_MODEL` | The model used for AI enrichment. |
 | **Batch Size** | `32` | `LKE_EMBEDDINGS__BATCH_SIZE` | How many chunks to embed concurrently. |
 | **Ollama URL** | `http://localhost:11434` | `LKE_AI_PROVIDER__BASE_URL` | Local Ollama endpoint. |
 | **Top K Results** | `5` | `LKE_SEARCH__TOP_K` | Number of default search results. |
 | **Min Similarity** | `0.75` | `LKE_SEARCH__MIN_SIMILARITY` | Minimum semantic match score (0.0 to 1.0). |
+| **Watcher Debounce** | `1.0` | `LKE_WATCHER__DEBOUNCE_SECONDS` | Seconds to wait before processing file changes. |
+| **Auto-File Enabled**| `False` | `LKE_ENRICHMENT__AUTO_FILE_ENABLED` | Whether to automatically move notes into folders based on AI tags. |
 
 > [!WARNING]
 > **Embedding Dimensions Mismatch**  
@@ -98,36 +92,11 @@ LKE can be configured using a `lke.toml` file (if provided) or by setting enviro
 ### `lke init`
 Validates the environment, verifies Ollama connectivity, checks model availability, and creates the required database tables.
 
-```bash
-uv run lke init
-```
-_Options:_
-- `--help`: Show help and exit.
-
 ### `lke index`
 Parses, chunks, and embeds markdown documents found in a specific directory or file, then stores them in LanceDB.
 
 ```bash
 uv run lke index [PATH]
-```
-_Example Invocation:_
-```bash
-uv run lke index --verbose /path/to/my/vault
-```
-_Example Output:_
-```text
-Parsed /path/to/my/vault/doc1.md
-Skipped /path/to/my/vault/doc2.md (content unchanged)
-Indexing Vault ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 2/2 documents 0:00:00
-
-      Index Complete      
-Metric             ┃ Value
-━━━━━━━━━━━━━━━━━━━╇━━━━━━
-Documents Indexed  │ 2    
-Chunks Generated   │ 5    
-Embeddings Created │ 5    
-Duration           │ 0.6 s
-Failures           │ 0    
 ```
 _Options:_
 - `[PATH]`: Directory or file to parse. Defaults to current directory (`.`).
@@ -141,79 +110,73 @@ Queries your indexed documents using semantic similarity.
 ```bash
 uv run lke search "your query here"
 ```
-_Example Invocation:_
-```bash
-LKE_SEARCH__MIN_SIMILARITY=0.5 uv run lke search "local embeddings"
-```
-_Example Output:_
-```text
-╭──────────────────────────────────────────────────────────────────────────────╮
-│                                                                              │
-│  67%                                                                         │
-│                                                                              │
-│  Source                                                                      │
-│  /path/to/my/vault/doc2.md                                                   │
-│                                                                              │
-│  Preview                                                                     │
-│  Ollama provides local embeddings.                                           │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
-```
 _Options:_
 - `--top-k`: Number of results to return (default: `5`).
 
+### `lke enrich`
+Analyzes documents using the generation LLM to extract tags, write summaries, and optionally auto-file the document. 
+
+```bash
+uv run lke enrich [PATH]
+```
+_Options:_
+- `--auto-file / --no-auto-file`: Overrides the `LKE_ENRICHMENT__AUTO_FILE_ENABLED` setting.
+
+### `lke watch`
+Runs as a foreground process, actively monitoring the specified vault directory for file creations, modifications, and deletions. Automatically indexes and enriches files as they are saved.
+
+```bash
+uv run lke watch [PATH]
+```
+
 ---
 
-## 5. How Incremental Indexing Works
+## 5. Feature Deep Dives
 
+### Incremental Indexing
 To keep indexing extremely fast, LKE uses an incremental approach based on **content hashing**, rather than file modification times (which can be unreliable with sync tools).
 
-When you run `lke index`:
 1. **Unchanged files:** LKE calculates the SHA256 hash of the file's contents. If it matches the hash stored in `.lke/metadata.json`, the file is entirely **skipped**.
 2. **Modified files:** If the hash differs, LKE removes the old chunks from LanceDB and fully re-embeds the new contents of the file.
-3. **Deleted files:** If a file exists in the metadata but is no longer on disk, LKE purges all of its orphaned chunks from the vector database.
-4. **Renamed files:** LKE treats renames as a file deletion (of the old name) and a file addition (of the new name). **Note:** This means renaming a file will trigger a full re-computation of its embeddings.
+3. **Deleted files:** LKE purges all of its orphaned chunks from the vector database.
+4. **Renamed files:** LKE treats renames as a file deletion (of the old name) and a file addition (of the new name). This triggers full re-computation of embeddings.
 
-By adding the `--verbose` flag, LKE will explicitly tell you which files were skipped due to unchanged contents.
+### Watch Mode & Auto-Filing
+Watch mode utilizes `watchdog` to continuously listen for filesystem events. 
+- It uses a debounce timer (default 1 second) to bundle rapid saves into a single indexing/enrichment run.
+- If **auto-filing** is enabled, the AI will tag your note, and the system will automatically create a folder matching the primary tag and move the file there. The watcher explicitly suppresses re-indexing this self-caused move to prevent infinite loops.
+- Watch mode gracefully handles Ollama downtime. If the provider is unreachable, it logs a warning, retries the operation, and if it ultimately fails, it drops that single event rather than crashing the entire watcher process. 
 
 ---
 
-## 6. Feature Matrix
+## 6. Known Limitations (Deferred)
+
+- **DuckDB Removal:** Early plans called for DuckDB metadata tracking, but it was removed in favor of a simpler `metadata.json` + LanceDB approach.
+- **Watch Mode Startup Reconciliation:** If an auto-file move crashes mid-sequence (move succeeded, but LanceDB/metadata.json re-keying failed), the file's entry becomes orphaned until manually fixed. There is no automatic startup reconciliation yet to align disk state with metadata.json.
+- **Watch Mode Initial Catch-Up:** Watch mode does not perform an initial sync pass on startup. Files modified while `lke watch` wasn't running require a manual `lke index` + `lke enrich` run.
+- **Empirically Tuned Relevance Threshold:** The `related_notes_threshold` for enrichment is set at 0.55, which was empirically tuned based on a 10-note sample. This may need adjustment for larger vaults.
+- **Rename Handling:** Renamed files are treated as a delete followed by an add, triggering full re-embedding rather than a cheap metadata update.
+- **Link Breaking:** Explicit-path embeds and relative links may break when a file is automatically moved by auto-filing. Standard `[[wikilinks]]` are safer.
+
+---
+
+## 7. Feature Matrix
 
 | Feature | Status | Description |
 | :--- | :--- | :--- |
-| **Ollama Integration** | Available | Complete local embedding generation using `nomic-embed-text`. |
+| **Ollama Integration** | Available | Local embedding generation and enrichment. |
 | **Vector Storage** | Available | LanceDB-backed local vector storage. |
-| **Incremental Indexing** | Available | SHA256 hash-based skip logic to safely re-run index operations. |
+| **Incremental Indexing** | Available | SHA256 hash-based skip logic. |
 | **Semantic Search** | Available | Cosine-similarity searches over document chunks. |
-| **Markdown Parsing** | Available | Recursively reads `.md` and `.txt` files. |
-| **Watch Mode** | Planned | Automatically index files when they change on disk. |
+| **Markdown Parsing** | Available | Parses `.md` and `.txt` files, updating frontmatter. |
+| **AI Enrichment** | Available | Generates summaries, tags, and related notes. |
+| **Auto-Filing** | Available | Reorganizes files into semantic folders. |
+| **Watch Mode** | Available | Automatically index and enrich files when they change on disk. |
 | **Generative RAG** | Planned | Use an LLM to generate conversational answers based on search results. |
-| **DuckDB Analytics** | Planned | Relational database to perform SQL queries over vault metadata. |
 | **API Endpoints** | Planned | HTTP API to interact with the engine from other apps. |
-
----
-
-## 7. Troubleshooting
-
-### "Model is not pulled" during `lke init`
-**Symptom:** `✗ Ollama - Reason: Model 'nomic-embed-text' is not pulled.`  
-**Cause:** The configured model has not been downloaded to your local Ollama instance.  
-**Fix:** Run `ollama pull nomic-embed-text` in your terminal. If using a different model, pull that one instead.
-
-### "No matching documents were found" during `lke search`
-**Symptom:** The search command runs successfully but returns a prompt stating no documents matched.  
-**Cause:** By default, LKE requires a strict 75% semantic match (`min_similarity = 0.75`). Short queries or dissimilar content may fall below this threshold.  
-**Fix:** Lower the similarity threshold temporarily using an environment variable:
-`LKE_SEARCH__MIN_SIMILARITY=0.5 uv run lke search "your query"`
-
-### Schema dimension mismatch errors
-**Symptom:** Indexing crashes with a LanceDB/PyArrow schema error mentioning vector dimensions.  
-**Cause:** You changed `LKE_EMBEDDINGS__MODEL_NAME` to a model with a different output dimension (e.g. `all-minilm`), but LanceDB was initialized with the default 768 dimensions.  
-**Fix:** Set `LKE_EMBEDDINGS__EMBEDDING_DIMENSIONS=384` (or whatever matches your model). Note: If you change dimensions, you **must delete the `.lke` directory** and run `lke init` and `lke index` again from scratch, as LanceDB cannot alter vector dimensions after the table is created.
 
 ---
 
 ## 8. Architecture Overview
 
-LKE strictly follows Clean Architecture principles, ensuring a pure domain model completely decoupled from framework or infrastructure dependencies. The `typer` CLI acts merely as a thin presentation layer, communicating with orchestrating Application Services (like the `IndexingPipeline`). These in turn rely on Infrastructure adapters (like the `OllamaProvider` and `LanceDBRepository`) which conform strictly to interfaces defined in the Domain. For full technical details on this architecture, please refer to the engineering documentation in the `.ai/` and `.agent/` folders.
+LKE strictly follows Clean Architecture principles, ensuring a pure domain model completely decoupled from framework or infrastructure dependencies. The `typer` CLI acts merely as a thin presentation layer, communicating with orchestrating Application Services (like the `IndexingPipeline` and `EnrichmentPipeline`). These in turn rely on Infrastructure adapters (like the `OllamaProvider`, `MarkdownFrontmatterWriter`, and `LanceDBRepository`) which conform strictly to interfaces defined in the Domain. 
