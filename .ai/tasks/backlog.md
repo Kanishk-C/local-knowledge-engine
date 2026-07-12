@@ -79,10 +79,16 @@ This document is the canonical engineering work queue for implementing v0.1.0 of
     *   Implemented `EvalService` and CLI command `lke eval`.
     *   Built a realistic 32-note evaluation corpus and 12-query dataset testing homonyms, ambiguity, and phrasing overlap.
     *   Verified the `SearchService` achieves 1.0 Recall@5 on the expanded dataset.
-*   **T3.4.2: Tune/Re-validate `related_notes_threshold`** (COMPLETE)
+*   **T3.4.2: Tune/Re-validate `related_notes_threshold`** (PENDING)
     *   Extended the eval harness to also test note-to-note relatedness (the EnrichmentPipeline logic).
     *   Ran the `tests/eval/corpus` against a swept threshold (0.40 to 0.80).
-    *   Proved that dense vector embeddings structurally struggle to differentiate homonyms / structural overlap from true semantic relatedness (at the default 0.55 threshold, False Positives are 5).
+    *   **Finding:** Single-threshold cosine similarity on chunk-level embeddings cannot separate structural/lexical overlap from true semantic relation for this corpus, at any threshold value. The current default (0.55) yields a 100% false-positive rate on adversarial pairs. 
+*   **T3.4.3: Scope related-notes semantic accuracy fix** (PENDING)
+    *   *Task:* Evaluate options to fix the 100% false-positive rate on homonyms/adversarial pairs before proceeding with implementation.
+    *   *Option A:* Document-level pooled embeddings (average chunks).
+    *   *Option B:* Secondary signal combining cosine similarity with shared controlled vocabulary tags.
+    *   *Option C:* LLM-based relatedness judgement on candidate pairs above a low similarity floor.
+    *   *Recommendation:* **Option B** is recommended first. It leverages our existing robust `TagVocabulary` and requires no extra LLM calls (unlike C) nor architectural embedding changes (unlike A), directly grounding mathematical similarity in semantic tagging.
 
 ---
 
@@ -99,4 +105,4 @@ This document is the canonical engineering work queue for implementing v0.1.0 of
 *   **Watch Mode Initial Catch-Up:** Watch mode does not perform an initial sync pass on startup. Files modified while `lke watch` wasn't running require a manual `lke index` + `lke enrich` run.
 *   **Rename Handling:** Renamed files are treated as delete+add by the watcher, meaning a rename triggers full re-embedding rather than a cheap metadata update.
 *   **Link Breaking on Auto-File Moves:** Explicit-path embeds and relative links may break when a file is automatically moved. Only standard `[[wikilinks]]` are guaranteed to survive relocation.
-*   ~~**Empirically Tuned Relevance Threshold:** The `related_notes_threshold` defaults to 0.55. This was based on a small 10-note sample vault and manual spot-checking, rather than a rigorous, balanced dataset. It may fail to generalise to real, large vaults.~~ (CLOSED: Re-validated in T3.4.2. Precision is structurally limited by the embedding model's ability to differentiate homonyms).
+*   **Related-Notes Linking False Positives (CRITICAL):** Evaluation (T3.4.2) proves the `related_notes_threshold` using chunk-level cosine similarity has a 100% false-positive rate on homonyms/ambiguous pairs. **Recommendation for Fallback:** We should implement a temporary conservative fallback (e.g. require at least 1 exact tag match alongside the threshold) to prevent actively writing incorrect links into users' notes in production until the T3.4.3 fix lands.
