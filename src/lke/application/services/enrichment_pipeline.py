@@ -134,35 +134,52 @@ class EnrichmentPipeline:
         return prompt
 
     def _find_related_notes(self, document_id: str) -> list[str]:
-        """Find related notes using VectorRepository search."""
-        # Get chunks for this document
+        """Find related notes using document-level pooled embeddings."""
+        import math
         chunks = self._vector_repo.get_document(document_id)
         if not chunks:
             return []
             
-        doc_scores: dict[str, float] = {}
+        def pool_embeddings(chk_list):
+            if not chk_list:
+                return []
+            dim = len(chk_list[0].embedding.vector)
+            pooled = [0.0] * dim
+            for c in chk_list:
+                for i, val in enumerate(c.embedding.vector):
+                    pooled[i] += val
+            return [val / len(chk_list) for val in pooled]
+            
+        def cosine_sim(v1, v2):
+            if not v1 or not v2:
+                return 0.0
+            dot = sum(a * b for a, b in zip(v1, v2))
+            mag1 = math.sqrt(sum(a * a for a in v1))
+            mag2 = math.sqrt(sum(b * b for b in v2))
+            if mag1 == 0 or mag2 == 0:
+                return 0.0
+            return dot / (mag1 * mag2)
+
+        query_pooled = pool_embeddings(chunks)
         
+        # Get candidates using chunk-level search to avoid full table scan
+        candidate_doc_ids = set()
         for chunk in chunks:
-            # We assume VectorRepository.search takes an EmbeddingVector
-            # The protocol says search(embedding: EmbeddingVector, top_k: int)
             hits = self._vector_repo.search(chunk.embedding, top_k=20)
             for hit in hits:
-                if hasattr(hit, "chunk"):
-                    hit_doc_id = hit.chunk.chunk.document_id
-                else:
-                    hit_doc_id = hit.document_id
-
-                if hit_doc_id == document_id:
-                    continue
-                # Aggregate by max score
-                if hasattr(hit, "similarity"):
-                    score = hit.similarity
-                else:
-                    score = hit.score
-
-                if hit_doc_id not in doc_scores or score > doc_scores[hit_doc_id]:
-                    doc_scores[hit_doc_id] = score
+                hit_doc_id = hit.chunk.chunk.document_id if hasattr(hit, "chunk") else hit.document_id
+                if hit_doc_id != document_id:
+                    candidate_doc_ids.add(hit_doc_id)
                     
+        doc_scores: dict[str, float] = {}
+        for cand_id in candidate_doc_ids:
+            cand_chunks = self._vector_repo.get_document(cand_id)
+            if not cand_chunks:
+                continue
+            cand_pooled = pool_embeddings(cand_chunks)
+            score = cosine_sim(query_pooled, cand_pooled)
+            doc_scores[cand_id] = score
+            
         # Filter by threshold and sort by score
         threshold = self._config.related_notes_threshold
         related = [
