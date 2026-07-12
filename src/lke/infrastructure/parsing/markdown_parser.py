@@ -27,6 +27,11 @@ class MarkdownParser(Parser):
     # Matches tags like #tag, #project/lke
     _TAG_PATTERN = re.compile(r"(?:^|\s)#([a-zA-Z0-9_\/-]+)")
 
+    # Matches the AI-related notes block to strip it from the raw text
+    _AI_RELATED_PATTERN = re.compile(
+        r"<!-- ai-related:start -->.*?<!-- ai-related:end -->", re.DOTALL
+    )
+
     def parse(self, source: DataSource) -> ParsedContent:
         """Parse a markdown data source and extract structured content."""
         path = Path(source.uri)
@@ -59,6 +64,9 @@ class MarkdownParser(Parser):
 
         # Extract tags
         tags = [match.group(1) for match in self._TAG_PATTERN.finditer(raw_text)]
+
+        # Strip the AI related block so it isn't embedded or hashed
+        raw_text = self._AI_RELATED_PATTERN.sub("", raw_text).strip()
 
         # Extract tags from frontmatter if present
         if "tags" in frontmatter and isinstance(frontmatter["tags"], list):
