@@ -127,6 +127,7 @@ class EnrichmentPipeline:
             f"RULES:\n"
             f"- You may propose at most {self._config.max_new_tags_per_note} novel tags not in the Known Tags list.\n"
             f"- You may propose at most {self._config.max_new_folders_per_note} novel folders not in the Known Folders list.\n"
+            f"- ONLY apply a Known Tag if it is highly relevant to the document content. DO NOT reuse Known Tags just because they exist.\n"
             f"- Output MUST be a JSON object with 'tags', 'folder', and 'summary' keys.\n"
             f"\nDOCUMENT CONTENT:\n{parsed.raw_text}"
         )
