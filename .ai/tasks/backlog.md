@@ -78,7 +78,7 @@ This document is the canonical engineering work queue for implementing v0.1.0 of
     *   - **Findings:** Cross-Encoder integration is fundamentally sound and evaluating cleanly parsed body text. However, isolated, zero-shot, binary pairwise judgment (embeddings, cross-encoder, and single-pair LLM prompting) all fail to separate this adversarial corpus. No single threshold can separate structural overlap from true conceptual linkage under this testing paradigm.
     *   - **Testing Option B (Pairwise LLM Judgment):** We ran a direct 0-shot single-pair LLM evaluation using `llama3.2`. It successfully rejected all 5 adversarial false positives but incorrectly rejected 3 out of 5 conceptually related true positives.
     *   - **Note on Dataset:** The 5 adversarial pairs were deliberately engineered with identical boilerplate openers to stress-test this feature. They represent an extreme edge case.
-    *   - **Resolution:** Documented this as a known limitation for isolated pairwise evaluation. We have updated the default `related_notes_threshold` to `7.5` to strongly favor precision over recall and minimize false positives. Moving on to RAG milestone.
+    *   - **Resolution:** Documented this as a known limitation for isolated pairwise evaluation. We have updated the default `related_notes_threshold` to `7.5`. Since this threshold sits above every score (both TP and FP) observed in the sweep, related-notes linking is effectively disabled by default. We are moving on to the RAG milestone.
 
 ---
 
