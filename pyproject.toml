@@ -14,6 +14,7 @@ dependencies = [
     "pydantic",
     "pyyaml>=6.0.3",
     "rich",
+    "sentence-transformers",
     "tomlkit",
     "typer",
     "watchdog",
@@ -56,3 +57,11 @@ testpaths = ["tests"]
 filterwarnings = [
     "ignore:table_names\\(\\) is deprecated:DeprecationWarning",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }

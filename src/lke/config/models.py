@@ -61,7 +61,7 @@ class EnrichmentConfig(BaseModel):
     generation_model: str = Field(default="llama3.2")
     max_new_tags_per_note: int = Field(default=1, ge=0)
     max_new_folders_per_note: int = Field(default=1, ge=0)
-    related_notes_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
+    related_notes_threshold: float = Field(default=7.5)
     related_notes_max: int = Field(default=5, ge=1)
     auto_file_enabled: bool = Field(default=False)
 

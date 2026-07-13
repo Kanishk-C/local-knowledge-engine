@@ -133,52 +133,52 @@ class EnrichmentPipeline:
         )
         return prompt
 
+    def _get_cross_encoder(self):
+        if not hasattr(self, "_cross_encoder"):
+            from sentence_transformers import CrossEncoder
+            import logging
+            logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+            self._cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+        return self._cross_encoder
+
     def _find_related_notes(self, document_id: str) -> list[str]:
-        """Find related notes using document-level pooled embeddings."""
-        import math
+        """Find related notes using Cross-Encoder reranking."""
         chunks = self._vector_repo.get_document(document_id)
         if not chunks:
             return []
             
-        def pool_embeddings(chk_list):
-            if not chk_list:
-                return []
-            dim = len(chk_list[0].embedding.vector)
-            pooled = [0.0] * dim
-            for c in chk_list:
-                for i, val in enumerate(c.embedding.vector):
-                    pooled[i] += val
-            return [val / len(chk_list) for val in pooled]
-            
-        def cosine_sim(v1, v2):
-            if not v1 or not v2:
-                return 0.0
-            dot = sum(a * b for a, b in zip(v1, v2))
-            mag1 = math.sqrt(sum(a * a for a in v1))
-            mag2 = math.sqrt(sum(b * b for b in v2))
-            if mag1 == 0 or mag2 == 0:
-                return 0.0
-            return dot / (mag1 * mag2)
-
-        query_pooled = pool_embeddings(chunks)
-        
         # Get candidates using chunk-level search to avoid full table scan
+        # We fetch top 50 per chunk to get a good candidate pool for reranking
         candidate_doc_ids = set()
         for chunk in chunks:
-            hits = self._vector_repo.search(chunk.embedding, top_k=20)
+            hits = self._vector_repo.search(chunk.embedding, top_k=50)
             for hit in hits:
                 hit_doc_id = hit.chunk.chunk.document_id if hasattr(hit, "chunk") else hit.document_id
                 if hit_doc_id != document_id:
                     candidate_doc_ids.add(hit_doc_id)
                     
-        doc_scores: dict[str, float] = {}
-        for cand_id in candidate_doc_ids:
+        if not candidate_doc_ids:
+            return []
+            
+        # Re-rank candidates using the Cross-Encoder
+        encoder = self._get_cross_encoder()
+        query_text = " ".join([c.chunk.content for c in chunks])
+        
+        cand_pairs = []
+        cand_ids_list = list(candidate_doc_ids)
+        for cand_id in cand_ids_list:
             cand_chunks = self._vector_repo.get_document(cand_id)
-            if not cand_chunks:
-                continue
-            cand_pooled = pool_embeddings(cand_chunks)
-            score = cosine_sim(query_pooled, cand_pooled)
-            doc_scores[cand_id] = score
+            if cand_chunks:
+                cand_text = " ".join([c.chunk.content for c in cand_chunks])
+                cand_pairs.append((query_text, cand_text))
+            else:
+                cand_pairs.append((query_text, ""))
+                
+        scores = encoder.predict(cand_pairs)
+        
+        doc_scores: dict[str, float] = {}
+        for cand_id, score in zip(cand_ids_list, scores):
+            doc_scores[cand_id] = float(score)
             
         # Filter by threshold and sort by score
         threshold = self._config.related_notes_threshold
