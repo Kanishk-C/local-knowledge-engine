@@ -25,6 +25,12 @@ class ConfigurationError(LKEError):
     pass
 
 
+class IndexNotInitializedError(DomainError):
+    """Exception raised when trying to search an uninitialized index."""
+
+    pass
+
+
 class EmbeddingGenerationError(InfrastructureError):
     """Exception raised when an embedding provider fails to generate embeddings."""
 

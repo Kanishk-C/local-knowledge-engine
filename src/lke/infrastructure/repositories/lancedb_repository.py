@@ -65,7 +65,8 @@ class LanceDBRepository:
     ) -> list[VectorSearchHit]:
         """Perform semantic search to find similar chunks."""
         if self._table_name not in self._db.table_names():
-            return []
+            from lke.domain.exceptions import IndexNotInitializedError
+            raise IndexNotInitializedError("Index not initialized. Please run `lke index` first.")
 
         if len(embedding.vector) != self._dimensions:
             raise InvalidEmbeddingDimensionError(
