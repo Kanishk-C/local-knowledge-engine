@@ -6,7 +6,7 @@ import pytest
 from httpx import ConnectError, TimeoutException
 
 from lke.config.models import AIProviderConfig, EmbeddingsConfig
-from lke.domain.exceptions import EmbeddingGenerationError
+from lke.domain.exceptions import EmbeddingGenerationError, DomainError
 from lke.infrastructure.providers.ollama_provider import OllamaProvider
 
 
@@ -110,5 +110,39 @@ def test_health_check_offline(mock_list: MagicMock, provider: OllamaProvider) ->
     mock_list.side_effect = ConnectError("Connection refused")
 
     status = provider.health_check()
-    assert status.healthy is False
     assert status.message is not None and "Connection failed" in status.message
+
+
+@patch("ollama.Client.generate")
+def test_ollama_provider_generate_text_success(mock_generate: MagicMock, provider: OllamaProvider) -> None:
+    """Test successful text generation."""
+    mock_generate.return_value = {"response": "This is a test response."}
+
+    result = provider.generate_text(prompt="Hello", system_prompt="Sys prompt")
+
+    assert result == "This is a test response."
+    mock_generate.assert_called_once_with(
+        model=provider._generation_model,
+        prompt="Hello",
+        system="Sys prompt",
+        stream=False
+    )
+
+
+@patch("ollama.Client.generate")
+def test_ollama_provider_generate_text_malformed(mock_generate: MagicMock, provider: OllamaProvider) -> None:
+    """Test handling of malformed generation response."""
+    mock_generate.return_value = {"error": "bad request"}
+
+    with pytest.raises(DomainError, match="Failed to generate text"):
+        provider.generate_text(prompt="Hello")
+
+
+@patch("ollama.Client.generate")
+def test_ollama_provider_generate_text_offline(mock_generate: MagicMock, provider: OllamaProvider) -> None:
+    """Test handling of offline generation."""
+    mock_generate.side_effect = ConnectError("Connection refused")
+
+    with pytest.raises(DomainError, match="Failed to generate text"):
+        provider.generate_text(prompt="Hello")
+

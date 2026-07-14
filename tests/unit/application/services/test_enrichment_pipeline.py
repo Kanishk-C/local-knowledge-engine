@@ -116,6 +116,8 @@ def test_enrich_document_success(
     # Mock some chunks and hits
     chunk = MagicMock()
     chunk.embedding = [0.1]
+    chunk.chunk = MagicMock()
+    chunk.chunk.content = "mock content"
     mock_vector_repo.get_document.return_value = [chunk]
     
     hit = SearchResult(

@@ -20,7 +20,7 @@ def test_watcher_service_handle_change_success():
     watcher._handle_change(test_path)
     
     # Verify indexing called
-    mock_indexing.index_document.assert_called_once_with(str(test_path.absolute()))
+    mock_indexing.index_document.assert_called_once_with(test_path)
     
     # Verify enrichment called and callback passed
     mock_enrichment.enrich_document.assert_called_once()
@@ -40,7 +40,7 @@ def test_watcher_service_handle_change_indexing_fails():
     watcher._handle_change(test_path)
     
     # Verify indexing called
-    mock_indexing.index_document.assert_called_once_with(str(test_path.absolute()))
+    mock_indexing.index_document.assert_called_once_with(test_path)
     
     # Verify enrichment NOT called
     mock_enrichment.enrich_document.assert_not_called()

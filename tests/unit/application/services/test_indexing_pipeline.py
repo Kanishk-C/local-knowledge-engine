@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from lke.application.services.indexing_pipeline import IndexingPipeline
+from lke.application.services.indexing_pipeline import IndexingPipeline, _MetadataStore
 from lke.config.models import PathsConfig
 from lke.domain.models.document import ContentType, DocumentChunk, ParsedContent
 from lke.domain.models.embedding import EmbeddedChunk, EmbeddingVector
@@ -39,8 +39,8 @@ def vector_repo_mock() -> Mock:
 
 
 @pytest.fixture
-def paths_config_mock(tmp_path: Path) -> PathsConfig:
-    return PathsConfig(metadata_file=tmp_path / ".lke" / "metadata.json")
+def metadata_store_mock(tmp_path: Path) -> _MetadataStore:
+    return _MetadataStore(tmp_path / "metadata.json")
 
 
 @pytest.fixture
@@ -49,14 +49,14 @@ def pipeline(
     chunking_mock: Mock,
     embedding_mock: Mock,
     vector_repo_mock: Mock,
-    paths_config_mock: PathsConfig,
+    metadata_store_mock: _MetadataStore,
 ) -> IndexingPipeline:
     return IndexingPipeline(
         parser=parser_mock,
         chunking_service=chunking_mock,
         embedding_service=embedding_mock,
         vector_repo=vector_repo_mock,
-        paths_config=paths_config_mock,
+        metadata_store=metadata_store_mock,
     )
 
 
@@ -269,12 +269,14 @@ def test_index_document_orphaned_chunks_removed(
     repo = LanceDBRepository(paths_config, EmbeddingsConfig(embedding_dimensions=2))
     repo.initialize()
 
+    metadata_store = _MetadataStore(paths_config.metadata_file)
+
     pipeline = IndexingPipeline(
         parser=parser_mock,
         chunking_service=chunking_mock,
         embedding_service=embedding_mock,
         vector_repo=repo,
-        paths_config=paths_config,
+        metadata_store=metadata_store,
     )
 
     doc_path = tmp_path / "shortened.md"
