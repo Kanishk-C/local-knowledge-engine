@@ -41,7 +41,7 @@ def run_eval(
     mode: str = typer.Option(
         "search",
         "--mode", "-m",
-        help="Evaluation mode: 'search' or 'related-notes'"
+        help="Evaluation mode: 'search', 'related-notes', or 'rag'"
     ),
     verbose: bool = typer.Option(
         False,
@@ -86,7 +86,9 @@ def run_eval(
         eval_config = load_configuration()
         eval_config.paths.vector_db = temp_path / "vectors.lance"
         eval_config.paths.metadata_file = temp_path / "metadata.json"
-        eval_config.search.min_similarity = 0.0
+        
+        if mode == "search":
+            eval_config.search.min_similarity = 0.0
         
         provider = OllamaProvider(eval_config.ai_provider, eval_config.embeddings, eval_config.enrichment)
         vector_repo = LanceDBRepository(eval_config.paths, eval_config.embeddings)
@@ -105,9 +107,12 @@ def run_eval(
             parser, chunking_service, embedding_service, vector_repo, metadata_store
         )
         
-        relevance_scorer = RelevanceScorer(min_similarity=0.0)
+        relevance_scorer = RelevanceScorer(min_similarity=eval_config.search.min_similarity)
         search_service = SearchService(provider, vector_repo, relevance_scorer, eval_config.search)
         eval_service = EvalService()
+        
+        from lke.application.services.rag_service import RAGService
+        rag_service = RAGService(search_service, provider, eval_config.rag)
         
         print_info(f"Indexing evaluation corpus at {corpus}...")
         result = indexing_pipeline.index_vault(corpus)
@@ -122,6 +127,8 @@ def run_eval(
             
         if mode == "related-notes":
             run_related_notes_eval(data, corpus, eval_config, vector_repo)
+        elif mode == "rag":
+            run_rag_eval(data, rag_service, verbose)
         else:
             run_search_eval(data, eval_config, search_service, eval_service, threshold, verbose)
 
@@ -270,6 +277,54 @@ def run_search_eval(data, eval_config, search_service, eval_service, threshold, 
         sys.exit(1)
     else:
         print_success(f"Evaluation passed. Mean Recall ({aggregate.mean_recall:.3f}) meets or exceeds threshold ({threshold}).")
+
+def run_rag_eval(data, rag_service, verbose: bool):
+    evaluations = data.get("evaluations", [])
+    if not evaluations:
+        print_warning("No evaluations found in dataset.")
+        sys.exit(0)
+        
+    print_info(f"Running {len(evaluations)} RAG evaluation queries...")
+    
+    total = len(evaluations)
+    passed = 0
+    
+    for eval_item in evaluations:
+        query_text = eval_item["query"]
+        expected_contains = eval_item.get("expected_answer_contains", [])
+        expected_excludes = eval_item.get("expected_answer_excludes", [])
+        
+        response = rag_service.ask(query_text)
+        answer = response.answer.lower()
+        
+        missing = [c for c in expected_contains if c.lower() not in answer]
+        included = [e for e in expected_excludes if e.lower() in answer]
+        
+        is_success = len(missing) == 0 and len(included) == 0
+        if is_success:
+            passed += 1
+            
+        if verbose or not is_success:
+            console.print(f"\n[bold blue]Query:[/bold blue] {query_text}")
+            if not is_success:
+                console.print("[red]Result: FAILED[/red]")
+                if missing:
+                    console.print(f"[yellow]Missing expected terms:[/yellow] {missing}")
+                if included:
+                    console.print(f"[yellow]Included forbidden terms:[/yellow] {included}")
+            else:
+                console.print("[green]Result: PASSED[/green]")
+            console.print(f"[dim]Answer:[/dim] {response.answer}")
+            
+    success_rate = passed / total
+    console.print("\n[bold]Aggregate RAG Results[/bold]")
+    console.print(f"Success Rate: {passed}/{total} ({success_rate*100:.1f}%)")
+    
+    if passed < total:
+        print_error("Evaluation failed. Not all RAG queries met constraints.")
+        sys.exit(1)
+    else:
+        print_success("Evaluation passed. All RAG queries met constraints.")
         
 if __name__ == "__main__":
     app()

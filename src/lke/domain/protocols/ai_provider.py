@@ -40,3 +40,15 @@ class AIProvider(Protocol):
             A dictionary matching the schema structure.
         """
         ...
+
+    def generate_text(self, prompt: str, system_prompt: str | None = None) -> str:
+        """Generate unstructured text based on a prompt.
+        
+        Args:
+            prompt: The full prompt with context and instructions.
+            system_prompt: Optional system prompt to guide the model.
+            
+        Returns:
+            The generated text string.
+        """
+        ...

@@ -109,3 +109,9 @@ evaluations:
   expected_answer_excludes:
   - sourdough
   - bread
+- query: What is the capital of France?
+  expected_relevant_documents: []
+  expected_answer_contains:
+  - don't know
+  expected_answer_excludes:
+  - Paris

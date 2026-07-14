@@ -6,7 +6,7 @@ from typing import Any
 import ollama
 
 from lke.config.models import AIProviderConfig, EmbeddingsConfig, EnrichmentConfig
-from lke.domain.exceptions import EmbeddingGenerationError
+from lke.domain.exceptions import EmbeddingGenerationError, DomainError
 from lke.domain.models.embedding import (
     EmbeddingVector,
     HealthStatus,
@@ -113,6 +113,26 @@ class OllamaProvider:
             return json.loads(raw_text)
         except Exception as e:
             raise Exception(f"Failed to generate structured output: {e}") from e
+
+    def generate_text(self, prompt: str, system_prompt: str | None = None) -> str:
+        """Generate unstructured text based on a prompt."""
+        try:
+            kwargs = {
+                "model": self._generation_model,
+                "prompt": prompt,
+                "stream": False,
+            }
+            if system_prompt:
+                kwargs["system"] = system_prompt
+                
+            response = self._client.generate(**kwargs)
+            if isinstance(response, dict):
+                if "error" in response:
+                    raise Exception(f"API Error: {response['error']}")
+                return response.get("response", "")
+            return getattr(response, "response", "")
+        except Exception as e:
+            raise DomainError(f"Failed to generate text: {e}") from e
 
     def get_capabilities(self) -> ProviderCapabilities:
         raise NotImplementedError()

@@ -44,7 +44,7 @@ class SearchConfig(BaseModel):
     """Configuration for vector search."""
 
     top_k: int = Field(default=5, ge=1)
-    min_similarity: float = Field(default=0.75, ge=0.0, le=1.0)
+    min_similarity: float = Field(default=0.50, ge=0.0, le=1.0)
     max_results: int = Field(default=10, ge=1)
 
 
@@ -75,6 +75,28 @@ class PathsConfig(BaseModel):
     cache_dir: Path = Field(default=Path(".lke/cache"))
 
 
+class RAGConfig(BaseModel):
+    """Configuration for Retrieval-Augmented Generation."""
+    
+    top_k: int = Field(default=3, ge=1)
+    generation_model: str = Field(default="llama3.2")
+    system_prompt: str = Field(
+        default=(
+            "You are a helpful assistant answering questions based on a personal knowledge base. "
+            "You must answer ONLY using the provided context chunks. "
+            "If the provided context does not contain the answer, you must state 'I don't know' or that you found nothing relevant. "
+            "Do not fall back on trained-in knowledge or hallucinate information."
+        )
+    )
+
+
+class APIConfig(BaseModel):
+    """Configuration for the REST API."""
+    
+    host: str = Field(default="127.0.0.1")
+    port: int = Field(default=8000)
+
+
 class ApplicationConfig(BaseModel):
     """Root configuration model containing all sub-configurations."""
 
@@ -85,5 +107,7 @@ class ApplicationConfig(BaseModel):
     parsing: ParsingConfig = Field(default_factory=ParsingConfig)
     search: SearchConfig = Field(default_factory=SearchConfig)
     enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
+    rag: RAGConfig = Field(default_factory=RAGConfig)
     watcher: WatcherConfig = Field(default_factory=WatcherConfig)
+    api: APIConfig = Field(default_factory=APIConfig)
     paths: PathsConfig = Field(default_factory=PathsConfig)

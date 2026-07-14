@@ -22,6 +22,7 @@ from lke.domain.protocols.ai_provider import AIProvider
 from lke.domain.protocols.vocabulary import TagVocabulary, FolderVocabulary
 from lke.infrastructure.vocabulary.json_vocabulary import JsonVocabulary
 from lke.application.services.indexing_pipeline import _MetadataStore
+from lke.application.services.rag_service import RAGService
 
 T = TypeVar("T")
 
@@ -113,3 +114,6 @@ def initialize_container() -> None:
 
     search_service = SearchService(provider, vector_repo, relevance_scorer, config.search)
     container.register(SearchService, search_service)
+
+    rag_service = RAGService(search_service, provider, config.rag)
+    container.register(RAGService, rag_service)
