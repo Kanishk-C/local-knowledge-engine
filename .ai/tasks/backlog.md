@@ -15,6 +15,7 @@ This document is the canonical engineering work queue for implementing v0.1.0 of
 | **M1** | Parse + Embed + Search | Parsers, Ollama, LanceDB, Application Services | COMPLETE |
 | **M2** | Enrichment + Watch Mode | Tagging, Summarization, File Watcher, Resilience | COMPLETE |
 | **M3** | RAG, API & Release | RAG, API Server, CI/CD, Docs, Packaging, Evals | PENDING |
+| **M4** | Journal Core | Lightweight daily notes, people/event links, AI as optional extra | IN PROGRESS |
 
 ---
 
@@ -85,6 +86,16 @@ This document is the canonical engineering work queue for implementing v0.1.0 of
     *   - **Testing Option B (Pairwise LLM Judgment):** We ran a direct 0-shot single-pair LLM evaluation using `llama3.2`. It successfully rejected all 5 adversarial false positives but incorrectly rejected 3 out of 5 conceptually related true positives.
     *   - **Note on Dataset:** The 5 adversarial pairs were deliberately engineered with identical boilerplate openers to stress-test this feature. They represent an extreme edge case.
     *   - **Resolution:** Documented this as a known limitation for isolated pairwise evaluation. We have updated the default `related_notes_threshold` to `7.5`. Since this threshold sits above every score (both TP and FP) observed in the sweep, related-notes linking is effectively disabled by default. We are moving on to the RAG milestone.
+
+### Milestone 4: Journal Core
+*Goal: personal diary/log use with no cloud and no heavy dependencies. Obsidian is the editor; LKE handles capture and recall.*
+*   **T4.1.1: Split dependencies into core + `ai` / `api` extras** (COMPLETE)
+    *   Core = typer, rich, pydantic, pyyaml, loguru (about 19 MB installed, compared with about 5 GB with `ai`). `tomlkit` was replaced by stdlib `tomllib`.
+    *   DI container is now wired lazily; AI commands print an install hint (exit 5) when the extra is missing.
+*   **T4.1.2: Config file discovery** (COMPLETE): `$LKE_CONFIG` → `./.lke/config.toml` → `~/.config/lke/config.toml`. Previously no config file was ever loaded.
+*   **T4.2.1: SQLite FTS5 note index** (COMPLETE): incremental (mtime + size) index of notes, `[[wikilinks]]` (body + frontmatter), aliases, tags and dates at `<vault>/.lke/journal.db`.
+*   **T4.2.2: Journal commands** (COMPLETE): `today`, `log`, `find`, `who`, `day`, `onthisday`, `links`.
+*   **T4.3.1: Follow-ups** (PENDING): make `sentence-transformers`/PyTorch its own extra (enrichment currently always loads the cross-encoder); feed journal metadata (dates, people) into RAG so `ask` can answer "when did I last see X".
 
 ---
 

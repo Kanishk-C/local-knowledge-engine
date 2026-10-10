@@ -2,29 +2,17 @@
 
 from typing import Any, TypeVar
 
-from lke.application.services.indexing_pipeline import IndexingPipeline
-from lke.application.services.search_service import SearchService
-from lke.config.loader import load_configuration
-from lke.config.models import ApplicationConfig
-from lke.domain.protocols.embedding_provider import EmbeddingProvider
-from lke.domain.protocols.parser import Parser
-from lke.domain.repositories.vector_repository import VectorRepository
-from lke.domain.services.chunking import ChunkingService
-from lke.domain.services.embedding import EmbeddingService
-from lke.domain.services.relevance import RelevanceScorer
-from lke.infrastructure.parsing.markdown_parser import MarkdownParser
-from lke.infrastructure.providers.ollama_provider import OllamaProvider
-from lke.infrastructure.repositories.lancedb_repository import LanceDBRepository
-
-from lke.application.services.enrichment_pipeline import EnrichmentPipeline
-from lke.infrastructure.parsing.markdown_writer import MarkdownFrontmatterWriter
-from lke.domain.protocols.ai_provider import AIProvider
-from lke.domain.protocols.vocabulary import TagVocabulary, FolderVocabulary
-from lke.infrastructure.vocabulary.json_vocabulary import JsonVocabulary
-from lke.application.services.indexing_pipeline import _MetadataStore
-from lke.application.services.rag_service import RAGService
-
 T = TypeVar("T")
+
+AI_EXTRA_HINT = (
+    "This command needs the optional AI dependencies. Install them with:\n"
+    "  uv sync --extra ai        (from a checkout)\n"
+    "  pipx install 'lke[ai]'    (or uv tool install 'lke[ai]')"
+)
+
+
+class MissingExtraError(RuntimeError):
+    """Raised when an optional dependency group is not installed."""
 
 
 class Container:
@@ -35,13 +23,20 @@ class Container:
 
     def __init__(self) -> None:
         self._registry: dict[type, Any] = {}
+        self._initialized = False
 
     def register(self, interface: Any, implementation: Any) -> None:
         """Register an implementation for an interface."""
         self._registry[interface] = implementation
 
     def resolve(self, interface: Any) -> Any:
-        """Resolve an implementation for an interface."""
+        """Resolve an implementation for an interface.
+
+        The global container is wired lazily on first use, so commands that
+        don't need the AI stack never import it.
+        """
+        if interface not in self._registry and self is container and not self._initialized:
+            initialize_container()
         if interface not in self._registry:
             name = getattr(interface, "__name__", str(interface))
             raise KeyError(f"No implementation registered for {name}")
@@ -54,6 +49,31 @@ container = Container()
 
 def initialize_container() -> None:
     """Initialize the container with all application dependencies."""
+    container._initialized = True
+    try:
+        from lke.application.services.enrichment_pipeline import EnrichmentPipeline
+        from lke.application.services.indexing_pipeline import IndexingPipeline, _MetadataStore
+        from lke.application.services.rag_service import RAGService
+        from lke.application.services.search_service import SearchService
+        from lke.config.loader import load_configuration
+        from lke.config.models import ApplicationConfig
+        from lke.domain.protocols.ai_provider import AIProvider
+        from lke.domain.protocols.embedding_provider import EmbeddingProvider
+        from lke.domain.protocols.parser import Parser
+        from lke.domain.protocols.vocabulary import FolderVocabulary, TagVocabulary
+        from lke.domain.repositories.vector_repository import VectorRepository
+        from lke.domain.services.chunking import ChunkingService
+        from lke.domain.services.embedding import EmbeddingService
+        from lke.domain.services.relevance import RelevanceScorer
+        from lke.infrastructure.parsing.markdown_parser import MarkdownParser
+        from lke.infrastructure.parsing.markdown_writer import MarkdownFrontmatterWriter
+        from lke.infrastructure.providers.ollama_provider import OllamaProvider
+        from lke.infrastructure.repositories.lancedb_repository import LanceDBRepository
+        from lke.infrastructure.vocabulary.json_vocabulary import JsonVocabulary
+    except ModuleNotFoundError as e:
+        container._initialized = False
+        raise MissingExtraError(f"Missing module '{e.name}'.\n{AI_EXTRA_HINT}") from e
+
     config = load_configuration()
     container.register(ApplicationConfig, config)
 

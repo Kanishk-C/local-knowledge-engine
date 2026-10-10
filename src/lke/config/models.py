@@ -77,7 +77,7 @@ class PathsConfig(BaseModel):
 
 class RAGConfig(BaseModel):
     """Configuration for Retrieval-Augmented Generation."""
-    
+
     top_k: int = Field(default=3, ge=1)
     generation_model: str = Field(default="llama3.2")
     system_prompt: str = Field(
@@ -92,9 +92,29 @@ class RAGConfig(BaseModel):
 
 class APIConfig(BaseModel):
     """Configuration for the REST API."""
-    
+
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=8000)
+
+
+class JournalConfig(BaseModel):
+    """Configuration for the journal core (daily notes, people, events)."""
+
+    vault_path: Path = Field(default=Path("."), description="Root of the Markdown vault.")
+    daily_folder: str = Field(default="journal", description="Daily notes folder in the vault.")
+    daily_format: str = Field(
+        default="%Y/%Y-%m-%d",
+        description="strftime pattern for the daily note path inside daily_folder (no .md).",
+    )
+    template: Path | None = Field(
+        default=None, description="Daily note template, relative to the vault."
+    )
+    open_with: Literal["print", "editor", "obsidian"] = Field(
+        default="print", description="How `lke today` opens the note."
+    )
+    index_file: Path = Field(
+        default=Path(".lke/journal.db"), description="Search index, relative to the vault."
+    )
 
 
 class ApplicationConfig(BaseModel):
@@ -111,3 +131,4 @@ class ApplicationConfig(BaseModel):
     watcher: WatcherConfig = Field(default_factory=WatcherConfig)
     api: APIConfig = Field(default_factory=APIConfig)
     paths: PathsConfig = Field(default_factory=PathsConfig)
+    journal: JournalConfig = Field(default_factory=JournalConfig)

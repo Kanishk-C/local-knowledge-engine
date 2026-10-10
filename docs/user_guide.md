@@ -1,6 +1,11 @@
 # Local Knowledge Engine (LKE) User Guide
 
-Local Knowledge Engine (LKE) is an AI-powered semantic search and Retrieval-Augmented Generation (RAG) tool designed specifically for local markdown vaults. It works offline, keeping your knowledge completely private.
+Local Knowledge Engine (LKE) is a local-first journal and knowledge base for Markdown vaults, such as Obsidian. It works offline, keeping your knowledge completely private.
+
+It has two layers:
+
+* **Journal core** (always installed, standard library + SQLite): daily notes, quick capture, full-text search, people/event timelines. See [Journal](#journal).
+* **AI layer** (optional `ai` extra + Ollama): semantic search, RAG (`ask`), enrichment and watch mode. The `api` extra adds the REST server.
 
 ## Quick Start
 
@@ -11,12 +16,14 @@ LKE is a local-first Python CLI application. The recommended way to install and 
 git clone <repository_url> local_knowledge_engine
 cd local_knowledge_engine
 
-# Install globally using uv (recommended)
-uv tool install .
+# Journal core only (lightweight)
+uv tool install .            # or: pipx install .
 
-# Or install globally using pipx
-pipx install .
+# With the AI layer (adds LanceDB, Ollama client, PyTorch - several GB)
+uv tool install '.[ai]'      # or '.[api]' to include the REST server
 ```
+
+The remaining Quick Start steps are for the AI layer. For the journal, see [Journal](#journal).
 
 Initialize your vault (creates `.lke/` directory and verifies dependencies like Ollama):
 ```bash
@@ -35,9 +42,50 @@ lke ask "What is my vault about?"
 
 ---
 
+## Journal
+
+The journal works directly on your Markdown files and never changes anything except the daily note it creates or appends to. It keeps an index at `<vault>/.lke/journal.db`, which is refreshed incrementally on every command, so you don't need `index` or `watch`. You can delete it at any time.
+
+### Conventions
+
+* **Daily notes** live at `<daily_folder>/<daily_format>.md` (default `journal/2026/2026-10-10.md`). The date comes from a `YYYY-MM-DD` in the file name, or else from the frontmatter `date:`.
+* **People, events and places** are ordinary notes, e.g. `people/Alice.md` or `events/Goa trip.md`. Link to them with `[[Alice]]`, `[[Alice|Ali]]`, `[[people/Alice]]` or `[[Alice#Heading]]`. Links in frontmatter (`people: ["[[Alice]]"]`) count too.
+* `aliases:` in a note's frontmatter are honoured, so `lke who Ali` finds `Alice.md`.
+* Folders starting with `.` (`.obsidian`, `.trash`, `.git`, `.lke`) are ignored.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `lke today [DAY] [--open print\|editor\|obsidian]` | Create the daily note from the template if missing, then print its path or open it (`$EDITOR`, or the Obsidian app via `obsidian://`). |
+| `lke log TEXT...` | Append `- HH:MM TEXT` to today's note. Quote the text if it contains shell characters. |
+| `lke find WORDS... [--tag TAG] [-n N]` | Full-text search; all words must match. `word*` matches prefixes, and stemming means `walk` finds `walking`. |
+| `lke who NAME [--unlinked]` | Timeline (newest first) of every note linking to NAME, with the matching lines. `--unlinked` also lists plain-text mentions. |
+| `lke links [--folder people] [-n N]` | Most-linked notes with the date you last mentioned them. |
+| `lke day [DAY]` | Print the entry for a day. |
+| `lke onthisday [DAY]` | Print entries from the same date in previous years. |
+
+`DAY` accepts `today`, `yesterday`, `tomorrow`, `-N` (N days ago) or `YYYY-MM-DD`.
+
+### Template
+
+Set `journal.template` to a Markdown file inside the vault. These placeholders are replaced: `{{date}}` (2026-10-10), `{{title}}` (file name), `{{weekday}}` (Saturday), `{{long_date}}` (10 October 2026), `{{time}}` (14:05).
+
+### Using it with Obsidian
+
+Point the Obsidian *Daily notes* core plugin at the same folder and format. For example, folder `journal` with format `YYYY/YYYY-MM-DD` matches the default `daily_folder = "journal"` and `daily_format = "%Y/%Y-%m-%d"`. Notes made from either side are then the same file.
+
+---
+
 ## Configuration
 
-LKE is configured via a `config.json` file inside your `.lke/` directory. If it doesn't exist, LKE relies on strict defaults. 
+LKE reads a TOML config file from the first of these that exists: `$LKE_CONFIG`, `./.lke/config.toml`, `~/.config/lke/config.toml`. Any value can be overridden with environment variables using `__` for nesting, e.g. `LKE_JOURNAL__VAULT_PATH=~/Vault`. If no config file exists, the defaults below are used.
+
+```toml
+[journal]
+vault_path = "~/Obsidian/MyVault"
+open_with = "obsidian"
+```
 
 Below is the exhaustive list of configuration properties, directly reflecting the current system:
 
@@ -76,12 +124,20 @@ Below is the exhaustive list of configuration properties, directly reflecting th
 | **paths** | `vector_db` | string | `".lke/vectors.lance"` | LanceDB vector database location. |
 | **paths** | `metadata_file` | string | `".lke/metadata.json"` | JSON metadata tracking location. |
 | **paths** | `cache_dir` | string | `".lke/cache"` | Caching directory. |
+| **journal** | `vault_path` | path | `"."` | Root of the Markdown vault (`~` is expanded). |
+| **journal** | `daily_folder` | string | `"journal"` | Folder for daily notes, relative to the vault. |
+| **journal** | `daily_format` | string | `"%Y/%Y-%m-%d"` | `strftime` pattern for the daily note path inside `daily_folder` (without `.md`). |
+| **journal** | `template` | path / null | `null` | Daily note template, relative to the vault. |
+| **journal** | `open_with` | string | `"print"` | `print`, `editor` or `obsidian`: how `lke today` opens the note. |
+| **journal** | `index_file` | path | `".lke/journal.db"` | Journal search index, relative to the vault. |
 
 ---
 
 ## CLI Command Reference
 
 All commands support `--verbose` (`-v`), `--json-logs`, and `--help`.
+
+The journal commands are described in [Journal](#journal). The commands below belong to the AI layer and need the `ai` extra (`serve` needs `api`).
 
 ### `lke init`
 Initialize and validate the LKE environment. 

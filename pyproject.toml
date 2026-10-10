@@ -1,30 +1,38 @@
 [project]
 name = "lke"
 version = "0.1.0"
-description = "Add your description here"
+description = "Local-first journal and knowledge base for Markdown vaults, with optional local AI search."
 readme = "README.md"
 authors = [
     { name = "Kanishk-C", email = "kanishkc01@gmail.com" }
 ]
 requires-python = ">=3.14"
+# Core: journal commands only (today, log, find, who, day, onthisday, links).
 dependencies = [
-    "fastapi>=0.139.0",
-    "httpx>=0.28.1",
-    "lancedb",
     "loguru",
-    "ollama",
     "pydantic",
     "pyyaml>=6.0.3",
     "rich",
-    "sentence-transformers",
-    "tomlkit",
     "typer",
-    "uvicorn>=0.51.0",
+]
+
+[project.optional-dependencies]
+# Semantic search, RAG, enrichment and watch mode (needs a running Ollama).
+ai = [
+    "lancedb",
+    "ollama",
+    "sentence-transformers",
     "watchdog",
+]
+# REST API server (`lke serve`).
+api = [
+    "lke[ai]",
+    "fastapi>=0.139.0",
+    "uvicorn>=0.51.0",
 ]
 
 [project.scripts]
-lke = "lke.cli.app:app"
+lke = "lke.cli.app:run"
 
 [build-system]
 requires = ["uv_build>=0.11.21,<0.12.0"]
@@ -32,6 +40,8 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "lke[ai,api]",
+    "httpx>=0.28.1",
     "mypy>=2.1.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
@@ -55,7 +65,7 @@ warn_unused_configs = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "--cov=src --cov-report=term-missing"
+addopts = "--cov=src --cov-report=term-missing --import-mode=importlib"
 testpaths = ["tests"]
 filterwarnings = [
     "ignore:table_names\\(\\) is deprecated:DeprecationWarning",

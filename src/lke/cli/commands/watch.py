@@ -6,7 +6,6 @@ import sys
 import time
 import typer
 
-from lke.application.services.watcher_service import WatcherService
 from lke.application.services.indexing_pipeline import IndexingPipeline
 from lke.application.services.enrichment_pipeline import EnrichmentPipeline
 from lke.cli.console import console
@@ -27,6 +26,8 @@ def watch_command(
         print_error(f"Path does not exist or is not a directory: {path}")
         raise typer.Exit(code=1)
         
+    from lke.application.services.watcher_service import WatcherService
+
     indexing = container.resolve(IndexingPipeline)
     enrichment = container.resolve(EnrichmentPipeline)
     

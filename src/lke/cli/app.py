@@ -3,23 +3,26 @@
 import typer
 from loguru import logger
 
-from lke.cli.commands import index, init, search, enrich, watch, eval, ask, serve
+from lke.cli.commands import ask, enrich, eval, index, init, journal, search, serve, watch
+from lke.cli.container import MissingExtraError
+from lke.cli.formatting import print_error
 from lke.infrastructure.logging.setup import setup_logging
 
 app = typer.Typer(
     name="lke",
-    help="Local Knowledge Engine - AI-powered semantic search for your local documents.",
+    help=(
+        "Local Knowledge Engine - a local-first journal and knowledge base for Markdown"
+        " vaults.\n\n"
+        "Journal commands work offline with no extra dependencies. "
+        "AI commands need the optional 'ai' extra and a running Ollama."
+    ),
     no_args_is_help=True,
 )
 
-app.add_typer(init.app)
-app.add_typer(index.app)
-app.add_typer(search.app)
-app.add_typer(enrich.app)
-app.add_typer(watch.app)
-app.add_typer(eval.app)
-app.add_typer(ask.app)
-app.add_typer(serve.app)
+journal.register(app)
+
+for module in (init, index, search, ask, enrich, watch, eval, serve):
+    app.add_typer(module.app, rich_help_panel="AI (optional extra: ai)")
 
 
 @app.callback()
@@ -31,13 +34,17 @@ def main(
     level = "DEBUG" if verbose else "INFO"
     is_dev = not json_logs
     setup_logging(level=level, is_dev=is_dev)
-
-    from lke.cli.container import initialize_container
-
-    initialize_container()
-
     logger.debug("LKE CLI initialized.")
 
 
+def run() -> None:
+    """Console-script entry point with a friendly message for missing extras."""
+    try:
+        app()
+    except MissingExtraError as e:
+        print_error(str(e))
+        raise SystemExit(5) from None
+
+
 if __name__ == "__main__":
-    app()
+    run()

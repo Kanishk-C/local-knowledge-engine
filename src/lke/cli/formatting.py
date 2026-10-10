@@ -1,5 +1,6 @@
 """Formatting helpers and standardized visual components for the CLI."""
 
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -14,7 +15,7 @@ def print_success(message: str) -> None:
 
 def print_error(message: str) -> None:
     """Print an error message with a cross."""
-    console.print(f"[error]✗[/error] {message}")
+    console.print(f"[error]✗[/error] {escape(message)}")
 
 
 def print_warning(message: str) -> None:

@@ -1,12 +1,9 @@
 """Configuration loader."""
 
+import os
+import tomllib
 from pathlib import Path
 from typing import Any
-
-try:
-    import tomlkit
-except ImportError:
-    tomlkit = None  # type: ignore
 
 from lke.config.defaults import get_default_config
 from lke.config.exceptions import ConfigLoadError
@@ -17,15 +14,22 @@ from lke.config.validator import validate_config
 
 def load_toml(path: Path) -> dict[str, Any]:
     """Load configuration from a TOML file."""
-    if not tomlkit:
-        raise ConfigLoadError("tomlkit is required to load TOML configuration")
-
     try:
-        with open(path, encoding="utf-8") as f:
-            # Convert TOML document to standard dict
-            return dict(tomlkit.parse(f.read()))
+        with open(path, "rb") as f:
+            return tomllib.load(f)
     except Exception as e:
         raise ConfigLoadError(f"Failed to load TOML from {path}: {e}") from e
+
+
+def find_config_file() -> Path | None:
+    """Locate the config file.
+
+    Order: ``$LKE_CONFIG``, ``./.lke/config.toml``, ``~/.config/lke/config.toml``.
+    """
+    env_path = os.environ.get("LKE_CONFIG")
+    candidates = [Path(env_path).expanduser()] if env_path else []
+    candidates += [Path(".lke/config.toml"), Path.home() / ".config" / "lke" / "config.toml"]
+    return next((p for p in candidates if p.is_file()), None)
 
 
 def load_configuration(config_path: Path | None = None) -> ApplicationConfig:
@@ -36,6 +40,9 @@ def load_configuration(config_path: Path | None = None) -> ApplicationConfig:
     2. File configuration (if provided and exists)
     3. Environment variables
     """
+    if config_path is None:
+        config_path = find_config_file()
+
     # 1. Start with defaults
     base_dict = get_default_config().model_dump()
 

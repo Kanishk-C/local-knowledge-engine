@@ -140,3 +140,31 @@ def test_serialization() -> None:
     assert isinstance(dumped, dict)
     assert dumped["logging"]["level"] == "INFO"
     assert "vector_db" in dumped["paths"]
+
+
+def test_find_config_file_order(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """LKE_CONFIG wins, then ./.lke/config.toml, then ~/.config/lke/config.toml."""
+    from lke.config.loader import find_config_file
+
+    home = tmp_path / "home"
+    work = tmp_path / "work"
+    (home / ".config" / "lke").mkdir(parents=True)
+    (work / ".lke").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.chdir(work)
+    monkeypatch.delenv("LKE_CONFIG", raising=False)
+
+    assert find_config_file() is None
+    user_cfg = home / ".config" / "lke" / "config.toml"
+    user_cfg.write_text('[journal]\nvault_path = "~/Vault"\n')
+    assert find_config_file() == user_cfg
+    assert load_configuration().journal.vault_path == Path("~/Vault")
+
+    local_cfg = work / ".lke" / "config.toml"
+    local_cfg.write_text("")
+    assert find_config_file() == Path(".lke/config.toml")
+
+    explicit = tmp_path / "explicit.toml"
+    explicit.write_text("")
+    monkeypatch.setenv("LKE_CONFIG", str(explicit))
+    assert find_config_file() == explicit

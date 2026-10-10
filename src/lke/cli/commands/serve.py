@@ -2,9 +2,8 @@
 
 import logging
 import typer
-import uvicorn
 
-from lke.cli.container import container, initialize_container
+from lke.cli.container import MissingExtraError, container, initialize_container
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +31,13 @@ def serve() -> None:
         )
     else:
         logger.info(f"Starting API server on http://{host}:{port}")
+
+    try:
+        import uvicorn
+    except ModuleNotFoundError as e:
+        raise MissingExtraError(
+            "The API server needs the optional 'api' extra: uv sync --extra api"
+        ) from e
 
     # Launch uvicorn
     # uvicorn.run requires an import string if reload=True, but we'll run it directly
